@@ -2,7 +2,11 @@
 resolver = "3"
 members = [
     "benchmark",
+    "quest01",
 ]
 
+[workspace.metadata.quest01]
+start_time = 2025-11-04T00:36:37.137553
+completion_time = 2025-11-04T00:46:36.595971
 [profile.release]
 debug = true

@@ -43,7 +43,22 @@ use std::fmt::Display;
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
-    ("TODO", "TODO", "TODO")
+    (solve_part1(), solve_part2(), solve_part3())
+}
+
+#[inline]
+pub fn solve_part1() -> impl Display {
+    "TODO"
+}
+
+#[inline]
+pub fn solve_part2() -> impl Display {
+    "TODO"
+}
+
+#[inline]
+pub fn solve_part3() -> impl Display {
+    "TODO"
 }\
 """
 
