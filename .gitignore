@@ -1,0 +1,6 @@
+target/
+flamegraph.svg
+*.etl
+*.py
+!tasks.py
+data.txt
