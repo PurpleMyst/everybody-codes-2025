@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#     "argh",
+#     "typer",
 #     "python-dotenv",
 #     "requests",
 #     "termcolor",
@@ -21,10 +21,11 @@ from pathlib import Path
 
 import requests
 import tomlkit as toml
-from argh import aliases, dispatch_commands, wrap_errors
+import typer
 from dotenv import load_dotenv
 from termcolor import colored as c
 
+app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 cb = partial(c, attrs=["bold"])
 
 PROBLEM_NAME = "quest"
@@ -104,9 +105,8 @@ def in_root_dir(f):
     return inner
 
 
+@app.command()
 @in_root_dir
-@aliases("ss")
-@wrap_errors((requests.HTTPError,))
 def start_solve(num: int) -> None:
     "Start solving a problem."
     crate = f"{PROBLEM_NAME}{int(num):02}"
@@ -149,7 +149,7 @@ def start_solve(num: int) -> None:
     run(("git", "add", crate))
 
 
-@aliases("sb")
+@app.command()
 @in_root_dir
 def set_baseline(*, pattern: str = ".", name: str = DEFAULT_BASELINE) -> None:
     "Run a criterion benchmark, setting its results as the new baseline."
@@ -168,7 +168,10 @@ def set_baseline(*, pattern: str = ".", name: str = DEFAULT_BASELINE) -> None:
     )
 
 
-@aliases("cmp")
+app.command("sb")(set_baseline)
+
+
+@app.command()
 @in_root_dir
 def compare(*, pattern: str = ".", name: str = DEFAULT_BASELINE) -> None:
     "Run a criterion benchmark, comparing its results to the saved baseline."
@@ -187,8 +190,11 @@ def compare(*, pattern: str = ".", name: str = DEFAULT_BASELINE) -> None:
     )
 
 
+app.command("cmp")(compare)
+
+
+@app.command()
 @in_root_dir
-@aliases("cmp-stash")
 def compare_by_stashing(*, pattern: str, name: str = DEFAULT_BASELINE) -> None:
     "Stash the current changes, set the baseline and then compare the new changes."
     run(("git", "stash", "push", "-m", "Stashing for benchmarking"))
@@ -197,13 +203,18 @@ def compare_by_stashing(*, pattern: str, name: str = DEFAULT_BASELINE) -> None:
     compare(pattern=pattern, name=name)
 
 
+app.command("cmp-stash")(compare_by_stashing)
+
+
+@app.command()
 @in_root_dir
 def criterion(*, pattern: str = ".") -> None:
     "Run a criterion benchmark, without caring about baselines."
     run(("cargo", "bench", "--bench", "criterion", "--", pattern, "--verbose"))
 
+
+@app.command()
 @in_root_dir
-@aliases("mct")
 def measure_completion_time() -> None:
     "Measure completion time for all problems."
     from tabulate import tabulate
@@ -224,7 +235,11 @@ def measure_completion_time() -> None:
         table.append((problem.name, str(completion_time)))
     print(tabulate(table, headers=[PROBLEM_NAME.title(), "Completion Time"], tablefmt="fancy_grid"))
 
-@aliases("sct")
+
+app.command("mct")(measure_completion_time)
+
+
+@app.command()
 def set_completion_time() -> None:
     "Set the completion time for the problem you're currently in."
 
@@ -240,20 +255,13 @@ def set_completion_time() -> None:
     with WORKSPACE_MANIFEST_PATH.open("w") as manifest_f:
         toml.dump(manifest, manifest_f)
 
+
+app.command("sct")(set_completion_time)
+
+
 def main() -> None:
-    # environ["RUST_BACKTRACE"] = "1"
     environ["RUSTFLAGS"] = "-C target-cpu=native"
-    dispatch_commands(
-        (
-            set_baseline,
-            compare,
-            compare_by_stashing,
-            criterion,
-            start_solve,
-            set_completion_time,
-            measure_completion_time,
-        ),
-    )
+    app()
 
 
 if __name__ == "__main__":
