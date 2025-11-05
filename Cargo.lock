@@ -35,6 +35,7 @@ dependencies = [
  "criterion",
  "quest01",
  "quest02",
+ "quest03",
 ]
 
 [[package]]
@@ -282,6 +283,10 @@ version = "0.1.0"
 
 [[package]]
 name = "quest02"
+version = "0.1.0"
+
+[[package]]
+name = "quest03"
 version = "0.1.0"
 
 [[package]]
