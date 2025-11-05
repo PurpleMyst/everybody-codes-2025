@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
@@ -32,25 +32,15 @@ pub fn solve_part2() -> impl Display {
 
 #[inline]
 pub fn solve_part3() -> impl Display {
-    let mut crates = include_str!("part3.txt")
+    let crates = include_str!("part3.txt")
         .trim()
         .split(',')
         .map(|s| s.parse().unwrap())
         .collect::<Vec<u64>>();
 
-    let mut n = 0;
-    while !crates.is_empty() {
-        crates.sort_unstable();
-        let mut i = 0;
-
-        while i < crates.len() {
-            let element = crates.remove(i);
-            while i < crates.len() && crates[i] == element {
-                i += 1;
-            }
-        }
-
-        n += 1;
+    let mut seen = HashMap::<_, usize>::new();
+    for c in crates {
+        *seen.entry(c).or_default() += 1;
     }
-    n
+    seen.into_values().max().unwrap()
 }
