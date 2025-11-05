@@ -3,27 +3,46 @@ use std::io::Write;
 
 use quest02::{Complex, parse_a};
 
-fn turbo(value: u8) -> [u8 ; 3] {
-    let x = value as f64 / 99.0;
+fn turbo(value: u8) -> [u8; 3] {
+    // Account for empirical bounds
+    let x = (value as f64 - 24.0) / (99.0 - 24.0);
 
-    // Polynomial approximation of Turbo colormap (by Anton Mikhailov, Google)
-    let r = (34.61 + x * (1172.33 + x * (-10793.56 + x * (33300.12 + x * (-38394.49 + x * 14825.05))))).clamp(0.0, 255.0);
-    let g = (23.31 + x * (557.33 + x * (1225.33 + x * (-3574.96 + x * (4479.12 + x * (-1747.72)))))).clamp(0.0, 255.0);
-    let b = (27.2 + x * (3211.1 + x * (-15327.97 + x * (27814.0 + x * (-22569.18 + x * 6832.95))))).clamp(0.0, 255.0);
+    // Powers
+    let x2 = x * x;
+    let x3 = x2 * x;
+    let x4 = x2 * x2;
+    let x5 = x3 * x2;
 
-    [r as u8, g as u8, b as u8]
+    // Coefficients from the GLSL reference implementation
+    let r = 0.13572138 + 4.61539260 * x - 42.66032258 * x2 + 132.13108234 * x3 - 152.94239396 * x4 + 59.28637943 * x5;
+
+    let g = 0.09140261 + 2.19418839 * x + 4.84296658 * x2 - 14.18503333 * x3 + 4.27729857 * x4 + 2.82956604 * x5;
+
+    let b = 0.10667330 + 12.64194608 * x - 60.58204836 * x2 + 110.36276771 * x3 - 89.90310912 * x4 + 27.34824973 * x5;
+
+    [(r.clamp(0.0, 1.0) * 255.0).round() as u8,
+     (g.clamp(0.0, 1.0) * 255.0).round() as u8,
+     (b.clamp(0.0, 1.0) * 255.0).round() as u8]
 }
 
 fn main() {
-    let a = parse_a(include_str!("../part3.txt"));
-    let mut f = File::create("part3_image.pbm").unwrap();
+    draw(include_str!("../part2.txt"), "p2.pbm", 10);
+    draw(include_str!("../part3.txt"), "p3.pbm", 1);
+}
+
+fn draw(input: &'static str, out_path: &'static str, step: i64) {
+    let a = parse_a(input);
+    let mut f = File::create(out_path).unwrap();
     writeln!(f, "P6").unwrap();
     writeln!(f, "# q02-draw generated").unwrap();
-    writeln!(f, "1001 1001").unwrap();
+    let side = 1000 / step + 1;
+    writeln!(f, "{0} {0}", side).unwrap();
     writeln!(f, "255").unwrap();
 
-    for y in 0..=1000 {
-        'cell: for x in 0..=1000 {
+    let mut points = Vec::new();
+
+    for y in (0..=1000).step_by(step as usize) {
+        'cell: for x in (0..=1000).step_by(step as usize) {
             let b = Complex::new(a.real + x, a.imag + y);
 
             let mut check_result = Complex::zero();
@@ -31,11 +50,31 @@ fn main() {
             for step in 0..100 {
                 check_result = (check_result * check_result) / divisor + b;
                 if check_result.real.abs() > 1000000 || check_result.imag.abs() > 1000000 {
-                    let color = turbo(step);
-                    f.write_all(&color).unwrap();
+                    points.push(Some(step));
                     continue 'cell;
                 }
             }
+            points.push(None);
+        }
+    }
+
+    eprintln!("Drawing to {}", out_path);
+    eprintln!("Total points: {}", points.len());
+    eprintln!("Engraved points: {}", points.iter().filter(|p| p.is_none()).count());
+    eprintln!(
+        "Minimum step for escaped points: {}",
+        points.iter().filter_map(|p| *p).min().unwrap_or(0)
+    );
+    eprintln!(
+        "Maximum step for escaped points: {}",
+        points.iter().filter_map(|p| *p).max().unwrap_or(0)
+    );
+
+    for maybe_step in points {
+        if let Some(step) = maybe_step {
+            let color = turbo(step);
+            f.write_all(&color).unwrap();
+        } else {
             f.write_all(&[0, 0, 0]).unwrap();
         }
     }
