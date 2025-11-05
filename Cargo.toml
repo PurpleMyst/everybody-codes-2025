@@ -3,10 +3,15 @@ resolver = "3"
 members = [
     "benchmark",
     "quest01",
+    "quest02",
 ]
 
 [workspace.metadata.quest01]
 start_time = 2025-11-04T00:36:37.137553
 completion_time = 2025-11-04T00:46:36.595971
+
+[workspace.metadata.quest02]
+start_time = 2025-11-05T21:11:17.103163
+completion_time = 2025-11-05T21:30:00.279504
 [profile.release]
 debug = true
