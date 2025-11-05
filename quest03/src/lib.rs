@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::fmt::Display;
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
@@ -11,11 +11,10 @@ pub fn solve_part1() -> impl Display {
         .trim()
         .split(',')
         .map(|s| s.parse().unwrap())
-        .collect::<Vec<u64>>();
+        .collect::<Vec<u8>>();
     crates.sort_unstable();
     crates.dedup();
-
-    crates.iter().sum::<u64>()
+    crates.into_iter().map(|n| n as u16).sum::<u16>()
 }
 
 #[inline]
@@ -24,10 +23,10 @@ pub fn solve_part2() -> impl Display {
         .trim()
         .split(',')
         .map(|s| s.parse().unwrap())
-        .collect::<Vec<u64>>();
+        .collect::<Vec<u8>>();
     crates.sort_unstable();
     crates.dedup();
-    crates[..20].iter().sum::<u64>()
+    crates.into_iter().take(20).map(|n| n as u16).sum::<u16>()
 }
 
 #[inline]
@@ -36,11 +35,11 @@ pub fn solve_part3() -> impl Display {
         .trim()
         .split(',')
         .map(|s| s.parse().unwrap())
-        .collect::<Vec<u64>>();
+        .collect::<Vec<u8>>();
 
-    let mut seen = HashMap::<_, usize>::new();
+    let mut frequency = [0u16; 100];
     for c in crates {
-        *seen.entry(c).or_default() += 1;
+        frequency[c as usize] += 1;
     }
-    seen.into_values().max().unwrap()
+    frequency.into_iter().max().unwrap()
 }
