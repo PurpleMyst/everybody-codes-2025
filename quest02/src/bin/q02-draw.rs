@@ -72,11 +72,6 @@ fn draw(input: &'static str, out_path: &'static str, step: i64) {
     );
 
     for maybe_step in points {
-        if let Some(step) = maybe_step {
-            let color = turbo(step);
-            f.write_all(&color).unwrap();
-        } else {
-            f.write_all(&[0, 0, 0]).unwrap();
-        }
+        f.write_all(&maybe_step.map_or([0, 0, 0], turbo)).unwrap();
     }
 }
