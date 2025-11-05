@@ -4,17 +4,17 @@ use std::{
 };
 
 #[derive(Clone, Copy)]
-struct Complex {
-    real: i64,
-    imag: i64,
+pub struct Complex {
+    pub real: i64,
+    pub imag: i64,
 }
 
 impl Complex {
-    fn new(real: i64, imag: i64) -> Self {
+    pub fn new(real: i64, imag: i64) -> Self {
         Self { real, imag }
     }
 
-    fn zero() -> Self {
+    pub fn zero() -> Self {
         Self::new(0, 0)
     }
 }
@@ -63,7 +63,7 @@ pub fn solve() -> (impl Display, impl Display, impl Display) {
     (solve_part1(), solve_part2(), solve_part3())
 }
 
-fn parse_a(input: &str) -> Complex {
+pub fn parse_a(input: &str) -> Complex {
     let (a_r, a_i) = input
         .trim()
         .strip_prefix("A=[")
@@ -100,23 +100,19 @@ fn count_engraved(a: Complex, step: usize) -> usize {
     let mut result = 0usize;
 
     for y in (0..=1000).step_by(step) {
-        for x in (0..=1000).step_by(step) {
+        'cell: for x in (0..=1000).step_by(step) {
             let b = Complex::new(a.real + x, a.imag + y);
-            let mut engrave = true;
 
             let mut check_result = Complex::zero();
             let divisor = Complex::new(100000, 100000);
             for _ in 0..100 {
                 check_result = (check_result * check_result) / divisor + b;
                 if check_result.real.abs() > 1000000 || check_result.imag.abs() > 1000000 {
-                    engrave = false;
-                    break;
+                    continue 'cell;
                 }
             }
 
-            if engrave {
-                result += 1;
-            }
+            result += 1;
         }
     }
 
