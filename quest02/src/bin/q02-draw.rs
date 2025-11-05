@@ -1,5 +1,4 @@
-use std::fs::File;
-use std::io::Write;
+use std::{fs::File, io::Write};
 
 use quest02::{Complex, parse_a};
 
@@ -20,9 +19,11 @@ fn turbo(value: u8) -> [u8; 3] {
 
     let b = 0.10667330 + 12.64194608 * x - 60.58204836 * x2 + 110.36276771 * x3 - 89.90310912 * x4 + 27.34824973 * x5;
 
-    [(r.clamp(0.0, 1.0) * 255.0).round() as u8,
-     (g.clamp(0.0, 1.0) * 255.0).round() as u8,
-     (b.clamp(0.0, 1.0) * 255.0).round() as u8]
+    [
+        (r.clamp(0.0, 1.0) * 255.0).round() as u8,
+        (g.clamp(0.0, 1.0) * 255.0).round() as u8,
+        (b.clamp(0.0, 1.0) * 255.0).round() as u8,
+    ]
 }
 
 fn main() {

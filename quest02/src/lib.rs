@@ -126,4 +126,3 @@ pub fn solve_part3() -> impl Display {
 
     count_engraved(a, step)
 }
-
