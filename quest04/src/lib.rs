@@ -18,7 +18,7 @@ pub fn solve_part1() -> impl Display {
 pub fn solve_part2() -> impl Display {
     let input = include_bytes!("part2.txt");
     let (first, last) = parse(input);
-    (10000000000000 * last).div_ceil(first)
+    (10_000_000_000_000 * last).div_ceil(first)
 }
 
 #[inline]
@@ -26,7 +26,7 @@ pub fn solve_part3() -> impl Display {
     let input = include_bytes!("part3.txt");
     let mut it = input[..input.len() - 1].split(|&b| b == b'\n');
     let mut prev = u64::from_radix_10(it.next().unwrap()).0 as f64;
-    let mut ratio = 1.0;
+    let mut ratio = 100.0;
     for line in it {
         if let Some(i) = line.iter().position(|&b| b == b'|') {
             let (a, b) = line.split_at(i);
@@ -38,7 +38,7 @@ pub fn solve_part3() -> impl Display {
             ratio *= prev / u64::from_radix_10(line).0 as f64;
         }
     }
-    (100. * ratio).floor() as u64
+    ratio as u64
 }
 
 fn parse(input: &[u8]) -> (u64, u64) {
