@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use atoi::atoi;
+use atoi::FromRadix10;
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
@@ -13,7 +13,7 @@ pub fn solve_part1() -> impl Display {
         .trim()
         .as_bytes()
         .split(|&c| c == b',')
-        .map(|s| atoi(s).unwrap())
+        .map(|s| u8::from_radix_10(s).0)
         .collect::<Vec<u8>>();
     crates.sort_unstable();
     crates.dedup();
@@ -26,7 +26,7 @@ pub fn solve_part2() -> impl Display {
         .trim()
         .as_bytes()
         .split(|&c| c == b',')
-        .map(|s| atoi(s).unwrap())
+        .map(|s| u8::from_radix_10(s).0)
         .collect::<Vec<u8>>();
     crates.sort_unstable();
     crates.dedup();
@@ -39,7 +39,7 @@ pub fn solve_part3() -> impl Display {
         .trim()
         .as_bytes()
         .split(|&c| c == b',')
-        .map(|s| atoi(s).unwrap())
+        .map(|s| u8::from_radix_10(s).0)
         .collect::<Vec<u8>>();
     let mut frequency = [0u16; 100];
     for c in crates {
