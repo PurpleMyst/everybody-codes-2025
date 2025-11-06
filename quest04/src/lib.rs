@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use atoi::atoi;
+use atoi::FromRadix10;
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
@@ -29,22 +29,22 @@ pub fn solve_part2() -> impl Display {
 pub fn solve_part3() -> impl Display {
     let input = include_bytes!("part3.txt");
     let mut it = input[..input.len() - 1].split(|&b| b == b'\n');
-    let mut prev = atoi::<u64>(it.next().unwrap()).unwrap() as f64;
+    let mut prev = u64::from_radix_10(it.next().unwrap()).0 as f64;
     let mut ratio = 1.0;
     for line in it {
         if let Some(i) = line.iter().position(|&b| b == b'|') {
             let (a, b) = line.split_at(i);
-            let a = atoi::<u64>(a).unwrap() as f64;
-            let b = atoi::<u64>(&b[1..]).unwrap() as f64;
+            let a = u64::from_radix_10(a).0 as f64;
+            let b = u64::from_radix_10(&b[1..]).0 as f64;
             ratio *= prev / a;
             prev = b;
         } else {
-            ratio *= prev / atoi::<u64>(line).unwrap() as f64;
+            ratio *= prev / u64::from_radix_10(line).0 as f64;
         }
     }
     (100. * ratio).floor() as u64
 }
 
 fn parse(input: &[u8]) -> impl IntoIterator<Item = u64> {
-    input[..input.len() - 1].split(|&b| b == b'\n').map(|line| atoi::<u64>(line).unwrap())
+    input[..input.len() - 1].split(|&b| b == b'\n').map(|line| u64::from_radix_10(line).0)
 }
