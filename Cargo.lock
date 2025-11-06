@@ -289,6 +289,9 @@ dependencies = [
 [[package]]
 name = "quest01"
 version = "0.1.0"
+dependencies = [
+ "atoi",
+]
 
 [[package]]
 name = "quest02"

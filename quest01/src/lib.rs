@@ -8,26 +8,19 @@ pub fn solve() -> (impl Display, impl Display, impl Display) {
 #[inline]
 pub fn solve_part1() -> impl Display {
     let (names, instrs) = include_str!("part1.txt").split_once("\n\n").unwrap();
+    let (names, instrs) = parse(names, instrs);
     let mut i = 0usize;
-
-    let names: Vec<&str> = names.split(',').collect();
-    let instrs = instrs.split(',').map(|d| {
-        let mut cs = d.chars();
-        let d = cs.next().unwrap();
-        let n: usize = cs.collect::<String>().trim().parse().unwrap();
-        (d, n)
-    });
 
     for (d, n) in instrs {
         match d {
-            'R' => {
+            b'R' => {
                 for _ in 0..n {
                     if i != names.len() - 1 {
                         i += 1;
                     }
                 }
             }
-            'L' => {
+            b'L' => {
                 for _ in 0..n {
                     if i != 0 {
                         i -= 1;
@@ -44,20 +37,13 @@ pub fn solve_part1() -> impl Display {
 #[inline]
 pub fn solve_part2() -> impl Display {
     let (names, instrs) = include_str!("part2.txt").split_once("\n\n").unwrap();
+    let (names, instrs) = parse(names, instrs);
     let mut i = 0isize;
-
-    let names: Vec<&str> = names.split(',').collect();
-    let instrs = instrs.split(',').map(|d| {
-        let mut cs = d.chars();
-        let d = cs.next().unwrap();
-        let n: isize = cs.collect::<String>().trim().parse().unwrap();
-        (d, n)
-    });
 
     for (d, n) in instrs {
         match d {
-            'R' => i = (i + n).rem_euclid(names.len() as isize),
-            'L' => i = (i - n).rem_euclid(names.len() as isize),
+            b'R' => i = (i + n).rem_euclid(names.len() as isize),
+            b'L' => i = (i - n).rem_euclid(names.len() as isize),
             _ => unreachable!(),
         }
     }
@@ -68,23 +54,27 @@ pub fn solve_part2() -> impl Display {
 #[inline]
 pub fn solve_part3() -> impl Display {
     let (names, instrs) = include_str!("part3.txt").split_once("\n\n").unwrap();
-
-    let mut names: Vec<&str> = names.split(',').collect();
-    let instrs = instrs.split(',').map(|d| {
-        let mut cs = d.chars();
-        let d = cs.next().unwrap();
-        let n: isize = cs.collect::<String>().trim().parse().unwrap();
-        (d, n)
-    });
+    let (mut names, instrs) = parse(names, instrs);
 
     for (d, n) in instrs {
         let j = match d {
-            'R' => n.rem_euclid(names.len() as isize),
-            'L' => (-n).rem_euclid(names.len() as isize),
+            b'R' => n.rem_euclid(names.len() as isize),
+            b'L' => (-n).rem_euclid(names.len() as isize),
             _ => unreachable!(),
         };
-        names.swap(0, usize::try_from(j).unwrap());
+        names.swap(0, j as usize);
     }
 
     names[0]
+}
+
+fn parse(names: &'static str, instrs: &'static str) -> (Vec<&'static str>, impl Iterator<Item = (u8, isize)>) {
+    let names: Vec<&str> = names.split(',').collect();
+    let instrs = instrs.split(',').map(|d| {
+        let cs = d.as_bytes();
+        let d = cs[0];
+        let n: isize = atoi::atoi(&cs[1..]).unwrap();
+        (d, n)
+    });
+    (names, instrs)
 }
