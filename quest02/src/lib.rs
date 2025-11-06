@@ -3,6 +3,8 @@ use std::{
     ops::{Add, Div, Mul},
 };
 
+use rayon::prelude::*;
+
 #[derive(Clone, Copy)]
 pub struct Complex {
     pub real: i64,
@@ -97,26 +99,30 @@ pub fn solve_part2() -> impl Display {
 }
 
 fn count_engraved(a: Complex, step: usize) -> usize {
-    let mut result = 0usize;
+    (0..=1000i64 / step as i64)
+        .into_par_iter()
+        .map(|y| {
+            let y = y * step as i64;
 
-    for y in (0..=1000).step_by(step) {
-        'cell: for x in (0..=1000).step_by(step) {
-            let b = Complex::new(a.real + x, a.imag + y);
+            (0..=1000)
+                .step_by(step)
+                .filter(|x| {
+                    let b = Complex::new(a.real + x, a.imag + y);
 
-            let mut check_result = Complex::zero();
-            let divisor = Complex::new(100000, 100000);
-            for _ in 0..100 {
-                check_result = (check_result * check_result) / divisor + b;
-                if check_result.real.abs() > 1000000 || check_result.imag.abs() > 1000000 {
-                    continue 'cell;
-                }
-            }
+                    let mut check_result = Complex::zero();
+                    let divisor = Complex::new(100000, 100000);
+                    for _ in 0..100 {
+                        check_result = (check_result * check_result) / divisor + b;
+                        if check_result.real.abs() > 1000000 || check_result.imag.abs() > 1000000 {
+                            return false;
+                        }
+                    }
 
-            result += 1;
-        }
-    }
-
-    result
+                    true
+                })
+                .count()
+        })
+        .sum()
 }
 
 #[inline]
