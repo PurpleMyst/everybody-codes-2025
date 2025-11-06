@@ -10,18 +10,14 @@ pub fn solve() -> (impl Display, impl Display, impl Display) {
 #[inline]
 pub fn solve_part1() -> impl Display {
     let input = include_bytes!("part1.txt");
-    let mut numbers = parse(input).into_iter();
-    let first = numbers.next().unwrap();
-    let last = numbers.last().unwrap();
+    let (first, last) = parse(input);
     2025 * first / last
 }
 
 #[inline]
 pub fn solve_part2() -> impl Display {
     let input = include_bytes!("part2.txt");
-    let mut numbers = parse(input).into_iter();
-    let first = numbers.next().unwrap();
-    let last = numbers.last().unwrap();
+    let (first, last) = parse(input);
     (10000000000000 * last).div_ceil(first)
 }
 
@@ -45,6 +41,9 @@ pub fn solve_part3() -> impl Display {
     (100. * ratio).floor() as u64
 }
 
-fn parse(input: &[u8]) -> impl IntoIterator<Item = u64> {
-    input[..input.len() - 1].split(|&b| b == b'\n').map(|line| u64::from_radix_10(line).0)
+fn parse(input: &[u8]) -> (u64, u64) {
+    let first = u64::from_radix_10(input).0;
+    let last_line_start = input[..input.len() - 1].iter().rposition(|&b| b == b'\n').unwrap() + 1;
+    let last = u64::from_radix_10(&input[last_line_start..]).0;
+    (first, last)
 }
