@@ -149,9 +149,14 @@ def start_solve(num: int) -> None:
     run(("git", "add", crate))
 
 
+app.command("ss")(start_solve)
+
+
 @app.command()
 @in_root_dir
-def set_baseline(*, pattern: str = ".", name: str = DEFAULT_BASELINE) -> None:
+def set_baseline(
+    *, pattern: t.Annotated[str, typer.Argument()] = ".", name: str = DEFAULT_BASELINE
+) -> None:
     "Run a criterion benchmark, setting its results as the new baseline."
     run(
         (
@@ -173,7 +178,9 @@ app.command("sb")(set_baseline)
 
 @app.command()
 @in_root_dir
-def compare(*, pattern: str = ".", name: str = DEFAULT_BASELINE) -> None:
+def compare(
+    *, pattern: t.Annotated[str, typer.Argument()] = ".", name: str = DEFAULT_BASELINE
+) -> None:
     "Run a criterion benchmark, comparing its results to the saved baseline."
     run(
         (
@@ -195,7 +202,9 @@ app.command("cmp")(compare)
 
 @app.command()
 @in_root_dir
-def compare_by_stashing(*, pattern: str, name: str = DEFAULT_BASELINE) -> None:
+def compare_by_stashing(
+    *, pattern: t.Annotated[str, typer.Argument()] = ".", name: str = DEFAULT_BASELINE
+) -> None:
     "Stash the current changes, set the baseline and then compare the new changes."
     run(("git", "stash", "push", "-m", "Stashing for benchmarking"))
     set_baseline(pattern=pattern, name=name)
@@ -204,13 +213,6 @@ def compare_by_stashing(*, pattern: str, name: str = DEFAULT_BASELINE) -> None:
 
 
 app.command("cmp-stash")(compare_by_stashing)
-
-
-@app.command()
-@in_root_dir
-def criterion(*, pattern: str = ".") -> None:
-    "Run a criterion benchmark, without caring about baselines."
-    run(("cargo", "bench", "--bench", "criterion", "--", pattern, "--verbose"))
 
 
 @app.command()
