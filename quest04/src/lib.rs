@@ -25,20 +25,18 @@ pub fn solve_part2() -> impl Display {
 pub fn solve_part3() -> impl Display {
     let input = include_bytes!("part3.txt");
     let mut it = input[..input.len() - 1].split(|&b| b == b'\n');
-    let mut prev = u64::from_radix_10(it.next().unwrap()).0 as f64;
-    let mut ratio = 100.0;
+    let mut ratio = 100 * u64::from_radix_10(it.next().unwrap()).0;
     for line in it {
         if let Some(i) = line.iter().position(|&b| b == b'|') {
             let (a, b) = line.split_at(i);
-            let a = u64::from_radix_10(a).0 as f64;
-            let b = u64::from_radix_10(&b[1..]).0 as f64;
-            ratio *= prev / a;
-            prev = b;
+            let a = u64::from_radix_10(a).0;
+            let b = u64::from_radix_10(&b[1..]).0;
+            ratio *= b / a;
         } else {
-            ratio *= prev / u64::from_radix_10(line).0 as f64;
+            ratio /= u64::from_radix_10(line).0;
         }
     }
-    ratio as u64
+    ratio
 }
 
 fn parse(input: &[u8]) -> (u64, u64) {
