@@ -73,7 +73,7 @@ impl Sword {
         self.spine
             .iter()
             .map(|segment| segment.value)
-            .fold(0, |acc, n| 10u64.pow(n.ilog10() + 1) * acc + n)
+            .fold(0, |acc, n| 10u64 * acc + n)
     }
 
     fn levels(&self) -> impl Iterator<Item = u64> {
@@ -83,7 +83,7 @@ impl Sword {
                 .into_iter()
                 .chain(once(segment.value))
                 .chain(segment.right.into_iter())
-                .fold(0, |acc, n| 10u64.pow(n.ilog10() + 1) * acc + n)
+                .fold(0, |acc, n| 10u64 * acc + n)
         })
     }
 }
