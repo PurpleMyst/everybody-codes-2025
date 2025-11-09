@@ -34,4 +34,5 @@ problems!(
     quest02,
     quest03,
     quest04,
+    quest05,
 );
