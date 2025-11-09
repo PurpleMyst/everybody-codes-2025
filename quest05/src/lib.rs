@@ -4,13 +4,13 @@ use atoi::FromRadix10;
 use itertools::Itertools;
 
 struct SpineSegment {
-    value: u64,
-    left: Option<u64>,
-    right: Option<u64>,
+    value: u8,
+    left: Option<u8>,
+    right: Option<u8>,
 }
 
 impl SpineSegment {
-    fn new(value: u64) -> Self {
+    fn new(value: u8) -> Self {
         Self {
             value,
             left: None,
@@ -47,7 +47,7 @@ impl Sword {
         Self { id, spine: vec![] }
     }
 
-    fn new(id: usize, numbers: impl Iterator<Item = u64>) -> Self {
+    fn new(id: usize, numbers: impl Iterator<Item = u8>) -> Self {
         let mut s = Self::empty(id);
         for n in numbers {
             s.push(n);
@@ -55,7 +55,7 @@ impl Sword {
         s
     }
 
-    fn push(&mut self, value: u64) {
+    fn push(&mut self, value: u8) {
         for segment in &mut self.spine {
             if value < segment.value && segment.left.is_none() {
                 segment.left = Some(value);
@@ -73,17 +73,17 @@ impl Sword {
         self.spine
             .iter()
             .map(|segment| segment.value)
-            .fold(0, |acc, n| 10u64 * acc + n)
+            .fold(0, |acc, n| 10 * acc + n as u64)
     }
 
-    fn levels(&self) -> impl Iterator<Item = u64> {
+    fn levels(&self) -> impl Iterator<Item = u16> {
         self.spine.iter().map(|segment| {
             segment
                 .left
                 .into_iter()
                 .chain(once(segment.value))
                 .chain(segment.right.into_iter())
-                .fold(0, |acc, n| 10u64 * acc + n)
+                .fold(0, |acc, n| 10 * acc + n as u16)
         })
     }
 }
@@ -100,12 +100,12 @@ pub fn solve_part1() -> impl Display {
     Sword::new(id, numbers).quality()
 }
 
-fn parse(input: &str) -> impl Iterator<Item = (usize, impl Iterator<Item = u64>)> {
+fn parse(input: &str) -> impl Iterator<Item = (usize, impl Iterator<Item = u8>)> {
     input.lines().map(|line| {
         let (id, nums) = line.split_once(":").unwrap();
         (
             usize::from_radix_10(id.as_bytes()).0,
-            nums.split(",").map(|n| u64::from_radix_10(n.as_bytes()).0),
+            nums.split(",").map(|n| u8::from_radix_10(n.as_bytes()).0),
         )
     })
 }
