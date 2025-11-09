@@ -22,6 +22,7 @@ impl SpineSegment {
 struct Sword {
     id: usize,
     spine: Vec<SpineSegment>,
+    start_idx: usize,
 }
 
 impl Display for Sword {
@@ -44,7 +45,7 @@ impl Display for Sword {
 
 impl Sword {
     fn empty(id: usize) -> Self {
-        Self { id, spine: vec![] }
+        Self { id, spine: vec![], start_idx: 0 }
     }
 
     fn new(id: usize, numbers: impl Iterator<Item = u8>) -> Self {
@@ -56,13 +57,19 @@ impl Sword {
     }
 
     fn push(&mut self, value: u8) {
-        for segment in &mut self.spine {
-            if value < segment.value && segment.left.is_none() {
+        for (idx, segment) in self.spine.iter_mut().enumerate().skip(self.start_idx) {
+            if segment.left.is_none() && value < segment.value {
                 segment.left = Some(value);
+                if idx == self.start_idx && segment.right.is_some() {
+                    self.start_idx += 1;
+                }
                 return;
             }
-            if value > segment.value && segment.right.is_none() {
+            if segment.right.is_none() && value > segment.value {
                 segment.right = Some(value);
+                if idx == self.start_idx && segment.left.is_some() {
+                    self.start_idx += 1;
+                }
                 return;
             }
         }
@@ -105,7 +112,10 @@ fn parse(input: &str) -> impl Iterator<Item = (usize, impl Iterator<Item = u8>)>
         let (id, nums) = line.split_once(":").unwrap();
         (
             usize::from_radix_10(id.as_bytes()).0,
-            nums.split(",").map(|n| u8::from_radix_10(n.as_bytes()).0),
+            nums
+                .bytes()
+                .step_by(2)
+                .map(|b| b - b'0')
         )
     })
 }
