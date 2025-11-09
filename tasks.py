@@ -252,7 +252,11 @@ def set_completion_time() -> None:
 
     manifest = toml.parse(WORKSPACE_MANIFEST_PATH.read_text())
     metadata = manifest["workspace"].setdefault("metadata", {})  # type: ignore
-    metadata.setdefault(problem, {})["completion_time"] = datetime.now()
+    problem_metadata = metadata.setdefault(problem, {})
+    if "completion_time" in problem_metadata:
+        print(cb("Completion time is already set.", "yellow"))
+        return
+    problem_metadata["completion_time"] = datetime.now()
 
     with WORKSPACE_MANIFEST_PATH.open("w") as manifest_f:
         toml.dump(manifest, manifest_f)
