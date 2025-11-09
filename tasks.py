@@ -9,6 +9,7 @@
 #     "tabulate",
 # ]
 # ///
+import re
 import shlex
 import subprocess
 import sys
@@ -25,7 +26,24 @@ import typer
 from dotenv import load_dotenv
 from termcolor import colored as c
 
-app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
+
+# https://github.com/fastapi/typer/issues/132#issuecomment-2417492805
+class AliasGroup(typer.core.TyperGroup):
+    _CMD_SPLIT_P = re.compile(r" ?[,|] ?")
+
+    def get_command(self, ctx, cmd_name):
+        cmd_name = self._group_cmd_name(cmd_name)
+        return super().get_command(ctx, cmd_name)
+
+    def _group_cmd_name(self, default_name):
+        for cmd in self.commands.values():
+            name = cmd.name
+            if name and default_name in self._CMD_SPLIT_P.split(name):
+                return name
+        return default_name
+
+
+app = typer.Typer(cls=AliasGroup, context_settings={"help_option_names": ["-h", "--help"]})
 cb = partial(c, attrs=["bold"])
 
 PROBLEM_NAME = "quest"
@@ -105,7 +123,7 @@ def in_root_dir(f):
     return inner
 
 
-@app.command()
+@app.command("start_solve | ss")
 @in_root_dir
 def start_solve(num: int) -> None:
     "Start solving a problem."
@@ -149,10 +167,7 @@ def start_solve(num: int) -> None:
     run(("git", "add", crate))
 
 
-app.command("ss")(start_solve)
-
-
-@app.command()
+@app.command("set_baseline | sb")
 @in_root_dir
 def set_baseline(
     *, pattern: t.Annotated[str, typer.Argument()] = ".", name: str = DEFAULT_BASELINE
@@ -173,10 +188,7 @@ def set_baseline(
     )
 
 
-app.command("sb")(set_baseline)
-
-
-@app.command()
+@app.command("compare | cmp")
 @in_root_dir
 def compare(
     *, pattern: t.Annotated[str, typer.Argument()] = ".", name: str = DEFAULT_BASELINE
@@ -197,10 +209,7 @@ def compare(
     )
 
 
-app.command("cmp")(compare)
-
-
-@app.command()
+@app.command("compare_by_stashing | cmp-stash")
 @in_root_dir
 def compare_by_stashing(
     *, pattern: t.Annotated[str, typer.Argument()] = ".", name: str = DEFAULT_BASELINE
@@ -212,10 +221,7 @@ def compare_by_stashing(
     compare(pattern=pattern, name=name)
 
 
-app.command("cmp-stash")(compare_by_stashing)
-
-
-@app.command()
+@app.command("measure_completion_time | mct")
 @in_root_dir
 def measure_completion_time() -> None:
     "Measure completion time for all problems."
@@ -238,10 +244,7 @@ def measure_completion_time() -> None:
     print(tabulate(table, headers=[PROBLEM_NAME.title(), "Completion Time"], tablefmt="fancy_grid"))
 
 
-app.command("mct")(measure_completion_time)
-
-
-@app.command()
+@app.command("set_completion_time | sct")
 def set_completion_time() -> None:
     "Set the completion time for the problem you're currently in."
 
@@ -260,9 +263,6 @@ def set_completion_time() -> None:
 
     with WORKSPACE_MANIFEST_PATH.open("w") as manifest_f:
         toml.dump(manifest, manifest_f)
-
-
-app.command("sct")(set_completion_time)
 
 
 def main() -> None:
