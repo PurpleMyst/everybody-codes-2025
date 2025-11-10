@@ -47,6 +47,7 @@ dependencies = [
  "quest03",
  "quest04",
  "quest05",
+ "quest06",
 ]
 
 [[package]]
@@ -331,6 +332,13 @@ version = "0.1.0"
 dependencies = [
  "atoi",
  "itertools 0.14.0",
+]
+
+[[package]]
+name = "quest06"
+version = "0.1.0"
+dependencies = [
+ "rayon",
 ]
 
 [[package]]
