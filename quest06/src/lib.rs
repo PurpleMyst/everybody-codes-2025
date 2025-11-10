@@ -1,7 +1,5 @@
 use std::fmt::Display;
 
-use rayon::prelude::*;
-
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
     (solve_part1(), solve_part2(), solve_part3())
@@ -54,34 +52,27 @@ pub fn solve_part3() -> impl Display {
     const DISTANCE_LIMIT: usize = 1000;
     const REPEATS: usize = 1000;
 
-    let input = include_str!("part3.txt").trim().as_bytes().repeat(REPEATS);
-
+    let input = include_str!("part3.txt").trim().as_bytes();
     let len = input.len();
 
-    let (a, b, c) = input
-        .par_iter()
-        .enumerate()
-        .map(|(i, &l)| -> (usize, usize, usize) {
-            if !matches!(l, b'a'..=b'c') {
-                return (0, 0, 0);
+    let compute = |to_left| {
+        let mut total = 0u32;
+        for (i, &l) in input.iter().enumerate() {
+            if !l.is_ascii_lowercase() {
+                continue;
             }
             let mentor = l.to_ascii_uppercase();
-            let mut total = 0;
-
-            for &m in &input[i.saturating_sub(DISTANCE_LIMIT)..=(i + DISTANCE_LIMIT).min(len - 1)] {
-                if m == mentor {
+            for j in i as isize - DISTANCE_LIMIT as isize..=(i + DISTANCE_LIMIT) as isize {
+                if input[j.rem_euclid(len as isize) as usize] == mentor
+                    && j >= -(to_left as isize) * len as isize
+                    && j < (REPEATS - to_left) as isize * len as isize
+                {
                     total += 1;
                 }
             }
-
-            match l {
-                b'a' => (total, 0, 0),
-                b'b' => (0, total, 0),
-                b'c' => (0, 0, total),
-                _ => unreachable!(),
-            }
-        })
-        .reduce(|| (0, 0, 0), |(x, y, z), (a, b, c)| (x + a, y + b, z + c));
-    a + b + c
+        }
+        total
+    };
+    let (left, (mid, right)) = rayon::join(|| compute(0), || rayon::join(|| compute(1), || compute(REPEATS - 1)));
+    left + mid + right
 }
-
