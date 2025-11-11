@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use itertools::izip;
+
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
     (solve_part1(), solve_part2(), solve_part3())
@@ -54,25 +56,121 @@ pub fn solve_part3() -> impl Display {
 
     let input = include_str!("part3.txt").trim().as_bytes();
     let len = input.len();
+    debug_assert!(input.len() > DISTANCE_LIMIT);
 
-    let compute = |to_left| {
-        let mut total = 0u32;
-        for (i, &l) in input.iter().enumerate() {
-            if !l.is_ascii_lowercase() {
-                continue;
+    let mut left = 0u32;
+    let mut mid = 0u32;
+    let mut right = 0u32;
+
+    let mut left_a_knights = 0;
+    let mut left_b_knights = 0;
+    let mut left_c_knights = 0;
+    let mut midright_a_knights = 0;
+    let mut midright_b_knights = 0;
+    let mut midright_c_knights = 0;
+
+    for tent in input.iter().take(DISTANCE_LIMIT + 1) {
+        match tent {
+            b'A' => left_a_knights += 1,
+            b'B' => left_b_knights += 1,
+            b'C' => left_c_knights += 1,
+            _ => {}
+        }
+    }
+
+    for tent in input.iter().rev().take(DISTANCE_LIMIT + 1) {
+        match tent {
+            b'A' => midright_a_knights += 1,
+            b'B' => midright_b_knights += 1,
+            b'C' => midright_c_knights += 1,
+            _ => {}
+        }
+    }
+
+    {
+        let mut a_knights = left_a_knights;
+        let mut b_knights = left_b_knights;
+        let mut c_knights = left_c_knights;
+
+        for (i, j, k) in izip!(-(DISTANCE_LIMIT as isize).., 0..len, DISTANCE_LIMIT + 1..) {
+            match input[j] {
+                b'a' => left += a_knights,
+                b'b' => left += b_knights,
+                b'c' => left += c_knights,
+                _ => {}
             }
-            let mentor = l.to_ascii_uppercase();
-            for j in i as isize - DISTANCE_LIMIT as isize..=(i + DISTANCE_LIMIT) as isize {
-                if input[j.rem_euclid(len as isize) as usize] == mentor
-                    && j >= -(to_left as isize) * len as isize
-                    && j < (REPEATS - to_left) as isize * len as isize
-                {
-                    total += 1;
+            if i >= 0 {
+                match input[i as usize] {
+                    b'A' => a_knights -= 1,
+                    b'B' => b_knights -= 1,
+                    b'C' => c_knights -= 1,
+                    _ => {}
+                }
+            }
+            match input[k % len] {
+                b'A' => a_knights += 1,
+                b'B' => b_knights += 1,
+                b'C' => c_knights += 1,
+                _ => {}
+            }
+        }
+    }
+
+    {
+        let mut a_knights = left_a_knights + midright_a_knights;
+        let mut b_knights = left_b_knights + midright_b_knights;
+        let mut c_knights = left_c_knights + midright_c_knights;
+
+        for (i, j, k) in izip!(-(DISTANCE_LIMIT as isize).., 0..len, DISTANCE_LIMIT + 1..) {
+            match input[j] {
+                b'a' => mid += a_knights,
+                b'b' => mid += b_knights,
+                b'c' => mid += c_knights,
+                _ => {}
+            }
+            match input[i.rem_euclid(len as isize) as usize] {
+                b'A' => a_knights -= 1,
+                b'B' => b_knights -= 1,
+                b'C' => c_knights -= 1,
+                _ => {}
+            }
+            match input[k % len] {
+                b'A' => a_knights += 1,
+                b'B' => b_knights += 1,
+                b'C' => c_knights += 1,
+                _ => {}
+            }
+        }
+    }
+
+    {
+        let mut a_knights = left_a_knights + midright_a_knights;
+        let mut b_knights = left_b_knights + midright_b_knights;
+        let mut c_knights = left_c_knights + midright_c_knights;
+
+        for (i, j, k) in izip!(-(DISTANCE_LIMIT as isize).., 0..len, DISTANCE_LIMIT + 1..) {
+            match input[j] {
+                b'a' => right += a_knights,
+                b'b' => right += b_knights,
+                b'c' => right += c_knights,
+                _ => {}
+            }
+            match input[i.rem_euclid(len as isize) as usize] {
+                b'A' => a_knights -= 1,
+                b'B' => b_knights -= 1,
+                b'C' => c_knights -= 1,
+                _ => {}
+            }
+            if k < len {
+                match input[k] {
+                    b'A' => a_knights += 1,
+                    b'B' => b_knights += 1,
+                    b'C' => c_knights += 1,
+                    _ => {}
                 }
             }
         }
-        total
-    };
-    let (left, (mid, right)) = rayon::join(|| compute(0), || rayon::join(|| compute(1), || compute(REPEATS - 1)));
-    left + mid + right
+    }
+
+    left + (REPEATS as u32 - 2) * mid + right
 }
