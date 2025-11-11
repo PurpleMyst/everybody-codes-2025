@@ -52,7 +52,7 @@ pub fn solve_part2() -> impl Display {
 #[inline]
 pub fn solve_part3() -> impl Display {
     const DISTANCE_LIMIT: usize = 1000;
-    const REPEATS: usize = 1000;
+    const REPEATS: u32 = 1000;
 
     let input = include_str!("part3.txt").trim().as_bytes();
     let len = input.len();
@@ -69,7 +69,7 @@ pub fn solve_part3() -> impl Display {
     let mut midright_b_knights = 0;
     let mut midright_c_knights = 0;
 
-    for tent in input.iter().take(DISTANCE_LIMIT + 1) {
+    for &tent in input.iter().take(DISTANCE_LIMIT + 1) {
         match tent {
             b'A' => left_a_knights += 1,
             b'B' => left_b_knights += 1,
@@ -78,7 +78,7 @@ pub fn solve_part3() -> impl Display {
         }
     }
 
-    for tent in input.iter().rev().take(DISTANCE_LIMIT + 1) {
+    for &tent in input.iter().rev().take(DISTANCE_LIMIT + 1) {
         match tent {
             b'A' => midright_a_knights += 1,
             b'B' => midright_b_knights += 1,
@@ -172,5 +172,5 @@ pub fn solve_part3() -> impl Display {
         }
     }
 
-    left + (REPEATS as u32 - 2) * mid + right
+    left + (REPEATS - 2) * mid + right
 }
