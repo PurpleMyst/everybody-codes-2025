@@ -45,7 +45,11 @@ impl Display for Sword {
 
 impl Sword {
     fn empty(id: usize) -> Self {
-        Self { id, spine: vec![], start_idx: 0 }
+        Self {
+            id,
+            spine: vec![],
+            start_idx: 0,
+        }
     }
 
     fn new(id: usize, numbers: impl Iterator<Item = u8>) -> Self {
@@ -112,10 +116,7 @@ fn parse(input: &str) -> impl Iterator<Item = (usize, impl Iterator<Item = u8>)>
         let (id, nums) = line.split_once(":").unwrap();
         (
             usize::from_radix_10(id.as_bytes()).0,
-            nums
-                .bytes()
-                .step_by(2)
-                .map(|b| b - b'0')
+            nums.bytes().step_by(2).map(|b| b - b'0'),
         )
     })
 }
