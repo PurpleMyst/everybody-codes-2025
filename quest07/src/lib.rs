@@ -1,7 +1,5 @@
 use std::fmt::Display;
 
-use rayon::prelude::*;
-
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
     (solve_part1(), solve_part2(), solve_part3())
@@ -78,6 +76,7 @@ pub fn solve_part3() -> impl Display {
     // we sort by length first to ensure we only keep the shortest unique prefixes, otherwise we
     // could skip over some valid names.
     let mut unique_prefixes = Vec::new();
+    let mut states_by_len = [[0; 26]; 12];
     for name in names {
         if !rules.allows(name.as_bytes()) {
             continue;
@@ -85,23 +84,26 @@ pub fn solve_part3() -> impl Display {
 
         if !unique_prefixes.iter().any(|prefix| name.starts_with(prefix)) {
             unique_prefixes.push(name);
+            states_by_len[name.len()][u8_to_idx(name.as_bytes().last().copied().unwrap())] += 1;
         }
     }
 
-    unique_prefixes
-        .into_par_iter()
-        .map(|prefix| {
-            let first = prefix.as_bytes().last().copied().unwrap();
 
+    states_by_len
+        .into_iter()
+        .enumerate()
+        .map(|(initial_len, mut states)| {
             // For each possible prefix, use a DP-y solution:
             // 1) The state is the number of names which end with a specific letter of the current
             //    length
             let mut total = 0;
-            let mut states = [0; 26];
+
+            if states.iter().all(|&c| c == 0) {
+                return total;
+            }
 
             // 2) We start off with just 1 possible name and at the prefix's own length.
-            states[u8_to_idx(first)] += 1;
-            for len in prefix.len()..=11 {
+            for len in initial_len..=11 {
                 let mut next_states = [0; 26];
                 for (prev_idx, count) in states.into_iter().enumerate() {
                     // 3) For each last letter for which we have at least one name...
