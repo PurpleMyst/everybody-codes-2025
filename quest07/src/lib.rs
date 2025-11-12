@@ -91,21 +91,30 @@ pub fn solve_part3() -> impl Display {
     unique_prefixes
         .into_par_iter()
         .map(|prefix| {
-            let mut states = vec![(prefix.as_bytes().last().copied().unwrap(), prefix.len())];
-            let mut count = 0;
-            while let Some((last, len)) = states.pop() {
-                if len >= 7 && len <= 11 {
-                    count += 1;
-                }
-                if len < 11 {
-                    for n in b'a'..=b'z' {
-                        if rules.can_follow(last, n) {
-                            states.push((n, len + 1));
+            let first = prefix.as_bytes().last().copied().unwrap();
+
+            let mut total = 0;
+            let mut states = [0; 26];
+            states[u8_to_idx(first)] += 1;
+            for len in prefix.len()..=11 {
+                let mut next_states = [0; 26];
+                for (prev_idx, count) in states.into_iter().enumerate() {
+                    if count == 0 {
+                        continue;
+                    }
+
+                    if len >= 7 {
+                        total += count;
+                    }
+                    for next in b'a'..=b'z' {
+                        if rules.can_follow(prev_idx as u8 + b'a', next) {
+                            next_states[u8_to_idx(next)] += states[prev_idx];
                         }
                     }
                 }
+                states = next_states;
             }
-            count
+            total
         })
-        .sum::<usize>()
+        .sum::<u32>()
 }
