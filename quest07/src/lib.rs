@@ -1,5 +1,7 @@
 use std::{collections::HashSet, fmt::Display};
 
+use rayon::prelude::*;
+
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
     (solve_part1(), solve_part2(), solve_part3())
@@ -70,33 +72,45 @@ pub fn solve_part2() -> impl Display {
 #[inline]
 pub fn solve_part3() -> impl Display {
     let (names, rules) = include_str!("part3.txt").split_once("\n\n").unwrap();
-    let names = names.split(',');
+    let mut names = names.split(',').collect::<Vec<_>>();
+    names.sort_unstable_by_key(|n| n.len());
+
     let rules = Rules::new(rules);
 
-    let mut result = HashSet::new();
+    // Filter prefixes to only those that are not themselves prefixes of other existing ones;
+    // we sort by length first to ensure we only keep the shortest unique prefixes, otherwise we
+    // could skip over some valid names.
+    let mut unique_prefixes = Vec::new();
     for name in names {
         if !rules.allows(name.as_bytes()) {
             continue;
         }
 
-        let mut states = Vec::new();
-        states.push(name.to_string());
+        if !unique_prefixes.iter().any(|prefix| name.starts_with(prefix)) {
+            unique_prefixes.push(name);
+        }
+    }
 
-        while let Some(state) = states.pop() {
-            if state.len() >= 7 && state.len() <= 11 {
-                result.insert(state.clone());
-            }
-
-            if state.len() < 11 {
-                let &last = state.as_bytes().last().unwrap();
-                for n in b'a'..=b'z' {
-                    if rules.can_follow(last, n) {
-                        states.push(state.clone());
-                        states.last_mut().unwrap().push(n as char);
+    unique_prefixes
+        .into_par_iter()
+        .map(|prefix| {
+            let mut states = vec![prefix.to_string()];
+            let mut produced = HashSet::new();
+            while let Some(state) = states.pop() {
+                if state.len() >= 7 && state.len() <= 11 {
+                    produced.insert(state.clone());
+                }
+                if state.len() < 11 {
+                    let &last = state.as_bytes().last().unwrap();
+                    for n in b'a'..=b'z' {
+                        if rules.can_follow(last, n) {
+                            states.push(state.clone());
+                            states.last_mut().unwrap().push(n as char);
+                        }
                     }
                 }
             }
-        }
-    }
-    result.len()
+            produced.len()
+        })
+        .sum::<usize>()
 }
