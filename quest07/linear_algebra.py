@@ -9,7 +9,7 @@ from textwrap import dedent
 
 import numpy as np
 
-MAX_LEN = 100
+MAX_LEN = 98
 
 
 def char_to_idx(s: str) -> int:
@@ -52,7 +52,7 @@ def main() -> None:
         .split("\n\n")
     )
 
-    matrix = np.zeros((2 * 26, 2 * 26))
+    matrix = np.zeros((2 * 26, 2 * 26), dtype=object)
     r = {}
     for line in filter(None, rules.splitlines()):
         lhs, rhs = line.split(" > ")
@@ -72,15 +72,15 @@ def main() -> None:
     start = time.perf_counter()
     total = 0
     for p in prefixes:
-        v = np.zeros(2 * 26)
+        v = np.zeros(2 * 26, dtype=object)
         v[char_to_idx(p[-1])] += 1
 
         for l in range(len(p), MAX_LEN + 1):
             if l >= 7:
                 total += int(sum(v))
             v = matrix @ v
-    print(total)
-    print("Runtime:", 1e6 * (time.perf_counter() - start), "us")
+    print(total, f"({total.bit_length()} bits)")
+    print("Runtime:", 1 * (time.perf_counter() - start), "s")
 
 
 if __name__ == "__main__":
