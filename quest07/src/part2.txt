@@ -1,0 +1,26 @@
+Malnixis,Gaernixis,Gaerzyth,Zarathnixis,Fendaros,Gaerisis,Larnixis,Palthparth,Gaerdaros,Malonar,Fenonar,Palthnixis,Tarlfelix,Tarlrex,Malisis,Tarlnixis,Fennixis,Gaeronar,Palththyn,Fenrex,Gaerrex,Tarlzyth,Fenthyn,Palthdaros,Palthnixis,Larparth,Thyrosnixis,Gaerparth,Maldaros,Fenfelix,Urithnixis,Urithdaros,Urithisis,Malnixis,Gaerfelix,Uriththyn,Tarldaros,Palthrex,Malthyn,Fenparth,Thyroszyth,Malnixis,Zaraththyn,Malparth,Palthfelix,Malzyth,Larisis,Thyrosnixis,Urithparth,Palthzyth,Tarlparth,Zarathonar,Zarathparth,Gaerthyn,Fenzyth,Thyrosthyn,Malzyth,Thyrosparth,Maldaros,Malfelix,Palthisis,Larthyn,Malrex,Zarathfelix,Larfelix,Palthonar,Larrex,Tarlnixis,Malthyn,Tarlonar,Zarathnixis,Zarathisis,Zarathdaros,Fennixis,Gaernixis,Thyrosdaros,Fenisis,Urithonar,Urithrex,Zarathrex,Larzyth,Thyrosrex,Tarlthyn,Larnixis,Tarlisis,Zarathzyth,Urithfelix,Lardaros,Thyrosfelix,Malrex,Malparth,Malfelix,Thyrosonar,Laronar,Urithnixis,Malisis,Malnixis,Malonar,Thyrosisis,Urithzyth
+
+n > i,a,z,p,t,d,n,f,r,o
+r > n,t,o,e,l,z,p,i,d,f,r,v,a
+a > r,v,t
+l > z,p,i,t,d,n,f,r,o
+x > i
+d > a
+z > y
+G > a
+h > y,z,p,i,t,d,n,f,r,o,v
+L > a
+f > e
+y > t,n,r
+p > a
+U > r
+Z > a
+P > a
+o > s,n
+T > a,h
+e > l,x,r,v
+s > i,z,p,t,d,n,f,r,o
+M > a
+F > e
+i > x,s,t
+t > h

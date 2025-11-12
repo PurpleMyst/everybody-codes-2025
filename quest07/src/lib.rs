@@ -5,126 +5,78 @@ pub fn solve() -> (impl Display, impl Display, impl Display) {
     (solve_part1(), solve_part2(), solve_part3())
 }
 
-fn str_to_idx(s: &str) -> usize {
-    let b = s.as_bytes()[0];
-    u8_to_idx(b)
-}
-
 fn u8_to_idx(b: u8) -> usize {
     if b.is_ascii_lowercase() {
         (b - b'a') as usize
     } else {
-        (b - b'A') as usize
+        (b - b'A' + 26) as usize
+    }
+}
+
+struct Rules([u64; 2 * 26]);
+
+impl Rules {
+    fn new(list: &str) -> Self {
+        let mut this = Self([0u64; 2 * 26]);
+        for line in list.lines() {
+            let (before, afters) = line.split_once(" > ").unwrap();
+            let before_idx = u8_to_idx(before.as_bytes()[0]);
+            for after in afters.split(',') {
+                let after_idx = u8_to_idx(after.as_bytes()[0]);
+                this.0[before_idx] |= 1 << after_idx;
+            }
+        }
+        this
+    }
+
+    fn allows(&self, name: &[u8]) -> bool {
+        for (&c1, &c2) in name.iter().zip(name.iter().skip(1)) {
+            if !self.can_follow(c1, c2) {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn can_follow(&self, before: u8, after: u8) -> bool {
+        let idx = u8_to_idx(before);
+        let rule = self.0[idx];
+        rule == 0 || (rule & (1 << u8_to_idx(after))) != 0
     }
 }
 
 #[inline]
 pub fn solve_part1() -> impl Display {
     let (names, rules) = include_str!("part1.txt").split_once("\n\n").unwrap();
-    let names = names.split(',').collect::<Vec<_>>();
+    let mut names = names.split(',');
+    let rules = Rules::new(rules);
 
-    let mut lowercase_rules = [0u32; 26];
-    let mut uppercase_rules = [0u32; 26];
-    for line in rules.lines() {
-        let (before, afters) = line.split_once(" > ").unwrap();
-
-        for after in afters.split(",") {
-            let idx = str_to_idx(before);
-            if before.chars().next().unwrap().is_ascii_lowercase() {
-                lowercase_rules[idx] |= 1 << str_to_idx(after);
-            } else {
-                uppercase_rules[idx] |= 1 << str_to_idx(after);
-            }
-        }
-    }
-
-    'names: for name in names {
-        for (c1, c2) in name.chars().zip(name.chars().skip(1)) {
-            let idx = str_to_idx(&c1.to_string());
-            let rule = if c1.is_ascii_lowercase() {
-                lowercase_rules[idx]
-            } else {
-                uppercase_rules[idx]
-            };
-            if rule != 0 && (rule & (1 << str_to_idx(&c2.to_string()))) == 0 {
-                continue 'names;
-            }
-        }
-        return name;
-    }
-    "NO SOLUTION"
+    names.find(|name| rules.allows(name.as_bytes())).unwrap()
 }
 
 #[inline]
 pub fn solve_part2() -> impl Display {
     let (names, rules) = include_str!("part2.txt").split_once("\n\n").unwrap();
-    let names = names.split(',').collect::<Vec<_>>();
+    let names = names.split(',');
+    let rules = Rules::new(rules);
 
-    let mut lowercase_rules = [0u32; 26];
-    let mut uppercase_rules = [0u32; 26];
-    for line in rules.lines() {
-        let (before, afters) = line.split_once(" > ").unwrap();
-
-        for after in afters.split(",") {
-            let idx = str_to_idx(before);
-            if after.chars().next().unwrap().is_ascii_lowercase() {
-                lowercase_rules[idx] |= 1 << str_to_idx(after);
-            } else {
-                uppercase_rules[idx] |= 1 << str_to_idx(after);
-            }
-        }
-    }
-
-    let mut count = 0usize;
-    'names: for (i, name) in names.iter().enumerate() {
-        for (c1, c2) in name.chars().zip(name.chars().skip(1)) {
-            let idx = str_to_idx(&c1.to_string());
-            let rule = if c1.is_ascii_lowercase() {
-                lowercase_rules[idx]
-            } else {
-                uppercase_rules[idx]
-            };
-            if rule != 0 && (rule & (1 << str_to_idx(&c2.to_string()))) == 0 {
-                continue 'names;
-            }
-        }
-        count += 1 + i;
-    }
-    count
+    names
+        .enumerate()
+        .filter(|(_, name)| rules.allows(name.as_bytes()))
+        .map(|(i, _)| i + 1)
+        .sum::<usize>()
 }
 
 #[inline]
 pub fn solve_part3() -> impl Display {
     let (names, rules) = include_str!("part3.txt").split_once("\n\n").unwrap();
-    let names = names.split(',').collect::<Vec<_>>();
-
-    let mut lowercase_rules = [0u32; 26];
-    let mut uppercase_rules = [0u32; 26];
-    for line in rules.lines() {
-        let (before, afters) = line.split_once(" > ").unwrap();
-
-        for after in afters.split(",") {
-            let idx = str_to_idx(before);
-            if before.chars().next().unwrap().is_ascii_lowercase() {
-                lowercase_rules[idx] |= 1 << str_to_idx(after);
-            } else {
-                uppercase_rules[idx] |= 1 << str_to_idx(after);
-            }
-        }
-    }
+    let names = names.split(',');
+    let rules = Rules::new(rules);
 
     let mut result = HashSet::new();
-    'names: for name in names.iter() {
-        for (c1, c2) in name.chars().zip(name.chars().skip(1)) {
-            let idx = str_to_idx(&c1.to_string());
-            let rule = if c1.is_ascii_lowercase() {
-                lowercase_rules[idx]
-            } else {
-                uppercase_rules[idx]
-            };
-            if rule != 0 && (rule & (1 << str_to_idx(&c2.to_string()))) == 0 {
-                continue 'names;
-            }
+    for name in names {
+        if !rules.allows(name.as_bytes()) {
+            continue;
         }
 
         let mut states = Vec::new();
@@ -132,32 +84,13 @@ pub fn solve_part3() -> impl Display {
 
         while let Some(state) = states.pop() {
             if state.len() >= 7 && state.len() <= 11 {
-                if result.insert(state.clone()) {
-                }
-            }
-
-            for (c1, c2) in state.chars().zip(state.chars().skip(1)) {
-                let idx = str_to_idx(&c1.to_string());
-                let rule = if c1.is_ascii_lowercase() {
-                    lowercase_rules[idx]
-                } else {
-                    uppercase_rules[idx]
-                };
-                if rule != 0 && (rule & (1 << str_to_idx(&c2.to_string()))) == 0 {
-                    panic!();
-                }
+                result.insert(state.clone());
             }
 
             if state.len() < 11 {
                 let &last = state.as_bytes().last().unwrap();
-                let i = u8_to_idx(last);
-                let next_rules = if last.is_ascii_lowercase() {
-                    lowercase_rules[i]
-                } else {
-                    panic!()
-                };
                 for n in b'a'..=b'z' {
-                    if next_rules & (1 << u8_to_idx(n)) != 0 {
+                    if rules.can_follow(last, n) {
                         states.push(state.clone());
                         states.last_mut().unwrap().push(n as char);
                     }

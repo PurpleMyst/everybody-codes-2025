@@ -1,0 +1,17 @@
+Pyrendris,Pyrvor,Palthvor,Palthendris,Kyvor,Palthjor,Kyendris,Kyjor,Pyrjor
+
+d > r
+a > b
+P > y,a
+l > t
+e > n
+y > e,b
+r > i,e,j,v
+h > e,j,v
+v > o
+t > h
+i > s
+K > y
+o > r
+j > o
+n > d
