@@ -98,6 +98,7 @@ pub fn solve_part3() -> impl Display {
             //    length
             let mut total = 0;
             let mut states = [0; 26];
+
             // 2) We start off with just 1 possible name and at the prefix's own length.
             states[u8_to_idx(first)] += 1;
             for len in prefix.len()..=11 {
