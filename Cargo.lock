@@ -48,6 +48,7 @@ dependencies = [
  "quest04",
  "quest05",
  "quest06",
+ "quest07",
 ]
 
 [[package]]
@@ -341,6 +342,10 @@ dependencies = [
  "itertools 0.14.0",
  "rayon",
 ]
+
+[[package]]
+name = "quest07"
+version = "0.1.0"
 
 [[package]]
 name = "quote"

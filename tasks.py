@@ -122,11 +122,26 @@ def in_root_dir(f):
 
     return inner
 
+def find_next_problem_number() -> int:
+    existing_numbers = []
+    for path in Path().glob(f"{PROBLEM_NAME}*"):
+        match = re.match(rf"{PROBLEM_NAME}(\d+)", path.name)
+        if match:
+            existing_numbers.append(int(match.group(1)))
+    next_number = 1
+    while next_number in existing_numbers:
+        next_number += 1
+    return next_number
+
 
 @app.command("start_solve | ss")
 @in_root_dir
-def start_solve(num: int) -> None:
+def start_solve(num: int | None = None) -> None:
     "Start solving a problem."
+
+    if num is None:
+        num = find_next_problem_number()
+    
     crate = f"{PROBLEM_NAME}{int(num):02}"
     crate_path = Path(crate)
 
