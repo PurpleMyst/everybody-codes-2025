@@ -19,7 +19,7 @@ struct Rules([u64; 2 * 26]);
 
 impl Rules {
     fn new(list: &str) -> Self {
-        let mut this = Self([0u64; 2 * 26]);
+        let mut this = Self([0; 2 * 26]);
         for line in list.lines() {
             let (before, afters) = line.split_once(" > ").unwrap();
             let before_idx = u8_to_idx(before.as_bytes()[0]);
@@ -32,12 +32,9 @@ impl Rules {
     }
 
     fn allows(&self, name: &[u8]) -> bool {
-        for (&c1, &c2) in name.iter().zip(name.iter().skip(1)) {
-            if !self.can_follow(c1, c2) {
-                return false;
-            }
-        }
-        true
+        name.iter()
+            .zip(name.iter().skip(1))
+            .all(|(&c1, &c2)| self.can_follow(c1, c2))
     }
 
     fn can_follow(&self, before: u8, after: u8) -> bool {
