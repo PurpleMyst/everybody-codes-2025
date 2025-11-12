@@ -93,27 +93,40 @@ pub fn solve_part3() -> impl Display {
         .map(|prefix| {
             let first = prefix.as_bytes().last().copied().unwrap();
 
+            // For each possible prefix, use a DP-y solution:
+            // 1) The state is the number of names which end with a specific letter of the current
+            //    length
             let mut total = 0;
             let mut states = [0; 26];
+            // 2) We start off with just 1 possible name and at the prefix's own length.
             states[u8_to_idx(first)] += 1;
             for len in prefix.len()..=11 {
                 let mut next_states = [0; 26];
                 for (prev_idx, count) in states.into_iter().enumerate() {
+                    // 3) For each last letter for which we have at least one name...
                     if count == 0 {
                         continue;
                     }
 
+                    // ... increment the total if we're over the length threshold
                     if len >= 7 {
                         total += count;
                     }
-                    for next in b'a'..=b'z' {
-                        if rules.can_follow(prev_idx as u8 + b'a', next) {
-                            next_states[u8_to_idx(next)] += states[prev_idx];
-                        }
+
+                    // 4) Iterate over all possible next characters, i.e. the set bits in the rules
+                    //    bitmask
+                    let mut prev_rules = rules.0[prev_idx];
+                    while prev_rules != 0 {
+                        let next_idx = prev_rules.trailing_zeros() as usize;
+                        // 5) The next character's count is incremented by the number of current states
+                        next_states[next_idx] += states[prev_idx];
+                        prev_rules &= prev_rules - 1;
                     }
                 }
                 states = next_states;
             }
+            // It feels like there can be some linear algebra-y approch to this, but I've not
+            // figured it out yet.
             total
         })
         .sum::<u32>()
