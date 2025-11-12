@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::Display};
+use std::fmt::Display;
 
 use rayon::prelude::*;
 
@@ -94,23 +94,21 @@ pub fn solve_part3() -> impl Display {
     unique_prefixes
         .into_par_iter()
         .map(|prefix| {
-            let mut states = vec![prefix.to_string()];
-            let mut produced = HashSet::new();
-            while let Some(state) = states.pop() {
-                if state.len() >= 7 && state.len() <= 11 {
-                    produced.insert(state.clone());
+            let mut states = vec![(prefix.as_bytes().last().copied().unwrap(), prefix.len())];
+            let mut count = 0;
+            while let Some((last, len)) = states.pop() {
+                if len >= 7 && len <= 11 {
+                    count += 1;
                 }
-                if state.len() < 11 {
-                    let &last = state.as_bytes().last().unwrap();
+                if len < 11 {
                     for n in b'a'..=b'z' {
                         if rules.can_follow(last, n) {
-                            states.push(state.clone());
-                            states.last_mut().unwrap().push(n as char);
+                            states.push((n, len + 1));
                         }
                     }
                 }
             }
-            produced.len()
+            count
         })
         .sum::<usize>()
 }
