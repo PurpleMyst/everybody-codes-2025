@@ -40,7 +40,7 @@ impl Rules {
     fn can_follow(&self, before: u8, after: u8) -> bool {
         let idx = u8_to_idx(before);
         let rule = self.0[idx];
-        rule == 0 || (rule & (1 << u8_to_idx(after))) != 0
+        (rule & (1 << u8_to_idx(after))) != 0
     }
 }
 
