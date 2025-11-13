@@ -37,4 +37,5 @@ problems!(
     quest05,
     quest06,
     quest07,
+    quest08,
 );

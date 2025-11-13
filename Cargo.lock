@@ -49,6 +49,7 @@ dependencies = [
  "quest05",
  "quest06",
  "quest07",
+ "quest08",
 ]
 
 [[package]]
@@ -345,6 +346,10 @@ dependencies = [
 
 [[package]]
 name = "quest07"
+version = "0.1.0"
+
+[[package]]
+name = "quest08"
 version = "0.1.0"
 
 [[package]]
