@@ -56,8 +56,7 @@ impl Line {
         let x_num = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4);
         let y_num = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4);
 
-        let (x, y) = (x_num / denum, y_num / denum);
-        x.hypot(y) < 1.0 - 1e-12
+        x_num * x_num + y_num * y_num < (1.0 - 1e-12) * denum.abs() * denum.abs()
     }
 }
 
