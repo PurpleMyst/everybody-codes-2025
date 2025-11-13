@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use intmap::IntMap;
 use rayon::prelude::*;
 
 #[inline]
@@ -38,7 +39,7 @@ impl Line {
         Self { x1, y1, x2, y2 }
     }
 
-    fn intersect(&self, other: &Self) -> bool {
+    fn intersects(&self, other: &Self) -> bool {
         let x1 = self.x1;
         let x2 = self.x2;
         let x3 = other.x1;
@@ -85,12 +86,7 @@ pub fn solve_part2() -> impl Display {
     lines
         .par_iter()
         .enumerate()
-        .map(|(i, line_i)| {
-            lines[..i]
-                .iter()
-                .filter(|line_j| line_i.intersect(line_j))
-                .count()
-        })
+        .map(|(i, line_i)| lines[..i].iter().filter(|line_j| line_i.intersects(line_j)).count())
         .sum::<usize>()
 }
 
@@ -99,43 +95,37 @@ pub fn solve_part3() -> impl Display {
     const NAILS: usize = 256;
     let input = include_str!("part3.txt").trim();
     let mut it = input.split(',').map(|n| n.parse::<usize>().unwrap());
-
-    let idx_to_point = |idx| {
-        let theta = idx as f64 * std::f64::consts::TAU / NAILS as f64;
-        (theta.cos(), theta.sin())
-    };
-
-    let mut prev_idx = it.next().unwrap();
-    let mut lines = Vec::new();
-    let mut hit = [[false; NAILS + 1]; NAILS + 1];
-
-    for cur_idx in it {
-        let prev_point = idx_to_point(prev_idx);
-        let cur_point = idx_to_point(cur_idx);
-        let line = Line::new(prev_point, cur_point);
-        lines.push(line);
-        hit[prev_idx][cur_idx] = true;
-        hit[cur_idx][prev_idx] = true;
-        prev_idx = cur_idx;
+    let mut adjacency = IntMap::<usize, Vec<usize>>::default();
+    let mut a = it.next().unwrap();
+    for b in it {
+        adjacency.entry(a).or_default().push(b);
+        adjacency.entry(b).or_default().push(a);
+        a = b;
     }
 
+    // approach birthed from bob.oblong on the discord
     (1..NAILS)
         .into_par_iter()
-        .map(|i| {
-            (i + 1..=NAILS)
-                .map(|j| {
-                    let i_point = idx_to_point(i);
-                    let j_point = idx_to_point(j);
-                    let strike = Line::new(i_point, j_point);
-
-                    hit[i][j] as usize
-                        + lines
-                            .iter()
-                            .filter(|thread| thread.intersect(&strike))
-                            .count()
+        .map(|a| {
+            let mut cuts = 0u16;
+            (a + 2..NAILS)
+                .map(|b| {
+                    cuts -= adjacency
+                        .get(b)
+                        .unwrap()
+                        .iter()
+                        .filter(|&&c| a < c && c < b - 1)
+                        .count() as u16;
+                    cuts += adjacency
+                        .get(b - 1)
+                        .unwrap()
+                        .iter()
+                        .filter(|&&c| !(a <= c && c < b + 1))
+                        .count() as u16;
+                    cuts + adjacency.get(b).unwrap().contains(&a) as u16
                 })
                 .max()
-                .unwrap()
+                .unwrap_or_default()
         })
         .max()
         .unwrap()
