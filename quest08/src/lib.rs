@@ -1,4 +1,6 @@
-use std::{collections::HashSet, fmt::Display};
+use std::fmt::Display;
+
+use rayon::prelude::*;
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
@@ -79,7 +81,7 @@ pub fn solve_part2() -> impl Display {
         let line = Line::new(prev_point, cur_point);
         for other_line in &lines {
             if let Some((x, y)) = line.intersect(other_line)
-                && x.hypot(y) < 1.0 - 1e-9
+                && x.hypot(y) < 1.0 - 1e-12
             {
                 count += 1;
             }
@@ -105,30 +107,25 @@ pub fn solve_part3() -> impl Display {
 
     let mut prev_idx = it.next().unwrap();
     let mut lines = Vec::new();
-    let mut hit = HashSet::new();
+    let mut hit = [[false; NAILS + 1]; NAILS + 1];
 
     for cur_idx in it {
         let prev_point = idx_to_point(prev_idx);
         let cur_point = idx_to_point(cur_idx);
         let line = Line::new(prev_point, cur_point);
         lines.push(line);
-        hit.insert((prev_idx, cur_idx));
-        hit.insert((cur_idx, prev_idx));
+        hit[prev_idx][cur_idx] = true;
+        hit[cur_idx][prev_idx] = true;
         prev_idx = cur_idx;
     }
 
-    let mut best_strike = 0;
-    for i in 1..=NAILS {
-        for j in 1..=NAILS {
-            if i == j {
-                continue;
-            }
-
+    (1..=NAILS).into_par_iter().map(|i| {
+        (i + 1..=NAILS).map(|j| {
             let i_point = idx_to_point(i);
             let j_point = idx_to_point(j);
             let strike = Line::new(i_point, j_point);
 
-            let count = if hit.contains(&(i, j)) { 1 } else { 0 }
+            hit[i][j] as usize
                 + lines
                     .iter()
                     .filter(|thread| {
@@ -136,13 +133,10 @@ pub fn solve_part3() -> impl Display {
                             return false;
                         };
                         let d = x.hypot(y);
-                        let inside = d < 1.0 - 1e-9;
+                        let inside = d < 1.0 - 1e-12;
                         inside
                     })
-                    .count();
-            best_strike = best_strike.max(count);
-        }
-    }
-
-    best_strike
+                    .count()
+        }).max().unwrap_or_default()
+    }).max().unwrap()
 }
