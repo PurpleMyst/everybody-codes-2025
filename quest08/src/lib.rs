@@ -38,7 +38,7 @@ impl Line {
         Self { x1, y1, x2, y2 }
     }
 
-    fn intersect(&self, other: &Self) -> Option<(f64, f64)> {
+    fn intersect(&self, other: &Self) -> bool {
         let x1 = self.x1;
         let x2 = self.x2;
         let x3 = other.x1;
@@ -50,13 +50,14 @@ impl Line {
 
         let denum = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
         if denum == 0.0 {
-            return None;
+            return false;
         }
 
         let x_num = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4);
         let y_num = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4);
 
-        Some((x_num / denum, y_num / denum))
+        let (x, y) = (x_num / denum, y_num / denum);
+        x.hypot(y) < 1.0 - 1e-12
     }
 }
 
@@ -72,26 +73,26 @@ pub fn solve_part2() -> impl Display {
     };
 
     let mut prev_idx = it.next().unwrap();
-    let mut count = 0;
-    let mut lines = Vec::new();
+    let lines = it
+        .map(|cur_idx| {
+            let prev_point = idx_to_point(prev_idx);
+            let cur_point = idx_to_point(cur_idx);
+            let line = Line::new(prev_point, cur_point);
+            prev_idx = cur_idx;
+            line
+        })
+        .collect::<Vec<_>>();
 
-    for cur_idx in it {
-        let prev_point = idx_to_point(prev_idx);
-        let cur_point = idx_to_point(cur_idx);
-        let line = Line::new(prev_point, cur_point);
-        for other_line in &lines {
-            if let Some((x, y)) = line.intersect(other_line)
-                && x.hypot(y) < 1.0 - 1e-12
-            {
-                count += 1;
-            }
-        }
-
-        prev_idx = cur_idx;
-        lines.push(line);
-    }
-
-    count
+    lines
+        .par_iter()
+        .enumerate()
+        .map(|(i, line_i)| {
+            lines[..i]
+                .iter()
+                .filter(|line_j| line_i.intersect(line_j))
+                .count()
+        })
+        .sum::<usize>()
 }
 
 #[inline]
@@ -119,24 +120,24 @@ pub fn solve_part3() -> impl Display {
         prev_idx = cur_idx;
     }
 
-    (1..=NAILS).into_par_iter().map(|i| {
-        (i + 1..=NAILS).map(|j| {
-            let i_point = idx_to_point(i);
-            let j_point = idx_to_point(j);
-            let strike = Line::new(i_point, j_point);
+    (1..NAILS)
+        .into_par_iter()
+        .map(|i| {
+            (i + 1..=NAILS)
+                .map(|j| {
+                    let i_point = idx_to_point(i);
+                    let j_point = idx_to_point(j);
+                    let strike = Line::new(i_point, j_point);
 
-            hit[i][j] as usize
-                + lines
-                    .iter()
-                    .filter(|thread| {
-                        let Some((x, y)) = thread.intersect(&strike) else {
-                            return false;
-                        };
-                        let d = x.hypot(y);
-                        let inside = d < 1.0 - 1e-12;
-                        inside
-                    })
-                    .count()
-        }).max().unwrap_or_default()
-    }).max().unwrap()
+                    hit[i][j] as usize
+                        + lines
+                            .iter()
+                            .filter(|thread| thread.intersect(&strike))
+                            .count()
+                })
+                .max()
+                .unwrap()
+        })
+        .max()
+        .unwrap()
 }
