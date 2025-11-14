@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::Display};
+use std::fmt::Display;
 
 use itertools::Itertools;
 
@@ -72,33 +72,24 @@ pub fn solve_part2() -> impl Display {
 pub fn solve_part3() -> impl Display {
     let list = include_str!("part3.txt").lines().map(|line| {
         let (id, dna) = line.split_once(':').unwrap();
-        (id.parse::<usize>().unwrap(), dna.as_bytes())
-    });
+        (id.parse::<usize>().unwrap()-1, dna.as_bytes())
+    }).collect_vec();
 
-    let mut families: Vec<std::collections::HashSet<(usize, &[u8])>> = Vec::new();
+    let mut ds = disjoint::DisjointSet::with_len(list.len());
 
-    list.array_combinations().for_each(|candidate_family| {
+    list.into_iter().array_combinations().for_each(|candidate_family| {
         let candidate_family_scales = candidate_family.map(|(_, dna)| dna);
         if similarity(candidate_family_scales).is_none() {
             return;
         }
 
-        let mut new_family = HashSet::new();
-        families.retain_mut(|family| {
-            if candidate_family.iter().any(|member| family.contains(member)) {
-                new_family.extend(family.iter().copied());
-                return false;
-            } else {
-                return true;
-            }
-        });
-        new_family.extend(candidate_family);
-        families.push(new_family);
+        ds.join(candidate_family[0].0, candidate_family[1].0);
+        ds.join(candidate_family[0].0, candidate_family[2].0);
     });
 
-    families
-        .iter()
+    ds.sets()
+        .into_iter()
         .max_by_key(|f| f.len())
-        .map(|f| f.into_iter().map(|p| p.0).sum::<usize>())
+        .map(|f| f.into_iter().map(|p| p+1).sum::<usize>())
         .unwrap()
 }
