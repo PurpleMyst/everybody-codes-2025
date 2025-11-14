@@ -2,6 +2,34 @@ use std::fmt::Display;
 
 use itertools::Itertools;
 
+#[derive(Clone, Copy)]
+struct Scale {
+    a: u128,
+    c: u128,
+    t: u128,
+    g: u128,
+}
+
+impl Scale {
+    fn new(dna: &[u8]) -> Self {
+        let mut this = Scale { a: 0, c: 0, t: 0, g: 0 };
+        for (i, &nucleotide) in dna.iter().enumerate() {
+            match nucleotide {
+                b'A' => this.a |= 1 << i,
+                b'C' => this.c |= 1 << i,
+                b'T' => this.t |= 1 << i,
+                b'G' => this.g |= 1 << i,
+                _ => unreachable!(),
+            }
+        }
+        this
+    }
+
+    fn same_mask(&self, other: &Self) -> u128 {
+        (self.a & other.a) | (self.c & other.c) | (self.t & other.t) | (self.g & other.g)
+    }
+}
+
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
     (solve_part1(), solve_part2(), solve_part3())
@@ -11,69 +39,52 @@ pub fn solve() -> (impl Display, impl Display, impl Display) {
 pub fn solve_part1() -> impl Display {
     let scales = include_str!("part1.txt")
         .lines()
-        .map(|line| line.split_once(':').unwrap().1.as_bytes())
-        .collect_array().unwrap();
+        .map(|line| Scale::new(line.split_once(':').unwrap().1.as_bytes()))
+        .collect_array()
+        .unwrap();
     similarity(scales).unwrap()
 }
 
-fn similarity(seqs: [&[u8]; 3]) -> Option<u32> {
-    let mut can_be_child = [true, true, true];
-    for i in 0..seqs[0].len() {
-        let a = seqs[0][i];
-        let b = seqs[1][i];
-        let c = seqs[2][i];
-        if a != b && a != c {
-            can_be_child[0] = false;
-        }
-        if b != a && b != c {
-            can_be_child[1] = false;
-        }
-        if c != a && c != b {
-            can_be_child[2] = false;
-        }
-    }
-    debug_assert!(can_be_child.iter().filter(|&&x| x).count() <= 1);
+fn similarity(seqs: [Scale; 3]) -> Option<u32> {
+    let m01 = seqs[0].same_mask(&seqs[1]);
+    let m02 = seqs[0].same_mask(&seqs[2]);
+    let m12 = seqs[1].same_mask(&seqs[2]);
 
-    let child_idx = can_be_child.iter().position(|&x| x)?;
-    let parents = if child_idx == 0 {
-        [1, 2]
-    } else if child_idx == 1 {
-        [0, 2]
+    if (m01 | m02) == u128::MAX {
+        // 0 is the child
+        Some(m01.count_ones() * m02.count_ones())
+    } else if (m01 | m12) == u128::MAX {
+        // 1 is the child
+        Some(m01.count_ones() * m12.count_ones())
+    } else if (m02 | m12) == u128::MAX {
+        // 2 is the child
+        Some(m02.count_ones() * m12.count_ones())
     } else {
-        [0, 1]
-    };
-    let mut result = 1;
-    for p in parents {
-        let mut matches = 0;
-        for (i, &g) in seqs[child_idx].iter().enumerate() {
-            if g == seqs[p][i] {
-                matches += 1;
-            }
-        }
-        result *= matches;
+        // no child
+        None
     }
-    Some(result)
 }
 
 #[inline]
 pub fn solve_part2() -> impl Display {
     let list = include_str!("part2.txt")
         .lines()
-        .map(|line| line.split_once(':').unwrap().1.as_bytes());
+        .map(|line| Scale::new(line.split_once(':').unwrap().1.as_bytes()));
 
     list.array_combinations()
-        .filter_map(|candidate_family| {
-            similarity(candidate_family)
-        })
+        .filter_map(|candidate_family| similarity(candidate_family))
         .sum::<u32>()
 }
 
 #[inline]
 pub fn solve_part3() -> impl Display {
-    let list = include_str!("part3.txt").lines().map(|line| {
-        let (id, dna) = line.split_once(':').unwrap();
-        (id.parse::<usize>().unwrap()-1, dna.as_bytes())
-    }).collect_vec();
+    let list = include_str!("part3.txt")
+        .lines()
+        .map(|line| {
+            let (id, dna) = line.split_once(':').unwrap();
+            (id.parse::<usize>().unwrap() - 1, Scale::new(dna.as_bytes()))
+        })
+        .collect_vec();
 
     let mut ds = disjoint::DisjointSet::with_len(list.len());
 
@@ -90,6 +101,6 @@ pub fn solve_part3() -> impl Display {
     ds.sets()
         .into_iter()
         .max_by_key(|f| f.len())
-        .map(|f| f.into_iter().map(|p| p+1).sum::<usize>())
+        .map(|f| f.into_iter().map(|p| p + 1).sum::<usize>())
         .unwrap()
 }
