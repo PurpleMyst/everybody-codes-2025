@@ -1,8 +1,9 @@
-use std::fmt::Display;
+use std::{cmp::Reverse, fmt::Display};
 
 use itertools::Itertools;
+use rayon::prelude::*;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 struct Scale {
     a: u128,
     c: u128,
@@ -69,11 +70,33 @@ fn similarity(seqs: [Scale; 3]) -> Option<u32> {
 pub fn solve_part2() -> impl Display {
     let list = include_str!("part2.txt")
         .lines()
-        .map(|line| Scale::new(line.split_once(':').unwrap().1.as_bytes()));
+        .map(|line| Scale::new(line.split_once(':').unwrap().1.as_bytes()))
+        .collect_vec();
 
-    list.array_combinations()
-        .filter_map(|candidate_family| similarity(candidate_family))
-        .sum::<u32>()
+    list.par_iter().filter_map(|child| {
+        let candidates = list
+            .iter()
+            .filter(|&duck| duck != child)
+            .sorted_unstable_by_key(|duck| Reverse(duck.same_mask(&child).count_ones()))
+            .collect_vec();
+
+        for (i, mother) in candidates.iter().enumerate() {
+            let mother_mask = mother.same_mask(&child);
+            let mother_matches = mother_mask.count_ones();
+
+            for father in candidates.iter().skip(i + 1) {
+                let father_mask = father.same_mask(&child);
+                let father_matches = father_mask.count_ones();
+                if mother_matches + father_matches < 128 {
+                    break;
+                }
+                if mother_mask | father_mask == u128::MAX {
+                    return Some(father_matches * mother_matches);
+                }
+            }
+        }
+        return None;
+    }).sum::<u32>()
 }
 
 #[inline]
@@ -86,18 +109,36 @@ pub fn solve_part3() -> impl Display {
         })
         .collect_vec();
 
-    let mut ds = disjoint::DisjointSet::with_len(list.len());
+    let triplets = list.par_iter().filter_map(|child| {
+        let candidates = list
+            .iter()
+            .filter(|&duck| duck != child)
+            .sorted_unstable_by_key(|duck| Reverse(duck.1.same_mask(&child.1).count_ones()))
+            .collect_vec();
 
-    list.into_iter().array_combinations().for_each(|candidate_family| {
-        let candidate_family_scales = candidate_family.map(|(_, dna)| dna);
-        if similarity(candidate_family_scales).is_none() {
-            return;
+        for (i, mother) in candidates.iter().enumerate() {
+            let mother_mask = mother.1.same_mask(&child.1);
+            let mother_matches = mother_mask.count_ones();
+
+            for father in candidates.iter().skip(i + 1) {
+                let father_mask = father.1.same_mask(&child.1);
+                let father_matches = father_mask.count_ones();
+                if mother_matches + father_matches < 128 {
+                    break;
+                }
+                if mother_mask | father_mask == u128::MAX {
+                    return Some((mother.0, father.0, child.0));
+                }
+            }
         }
+        return None;
+    }).collect_vec_list();
 
-        ds.join(candidate_family[0].0, candidate_family[1].0);
-        ds.join(candidate_family[0].0, candidate_family[2].0);
-    });
-
+    let mut ds = disjoint::DisjointSet::with_len(list.len());
+    for (m, f, c) in triplets.into_iter().flatten() {
+        ds.join(m, f);
+        ds.join(m, c);
+    }
     ds.sets()
         .into_iter()
         .max_by_key(|f| f.len())

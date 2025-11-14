@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 disjoint = "0.8.0"
 itertools = "0.14.0"
+rayon = "1.11.0"
