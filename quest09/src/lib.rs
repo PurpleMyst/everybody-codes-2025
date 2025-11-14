@@ -40,7 +40,7 @@ pub fn solve() -> (impl Display, impl Display, impl Display) {
 pub fn solve_part1() -> impl Display {
     let scales = include_str!("part1.txt")
         .lines()
-        .map(|line| Scale::new(line.split_once(':').unwrap().1.as_bytes()))
+        .map(|line| Scale::new(line[2..].as_bytes()))
         .collect_array()
         .unwrap();
     similarity(scales).unwrap()
