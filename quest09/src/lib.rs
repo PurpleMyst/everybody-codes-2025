@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display};
 
-use itertools::{Itertools, izip};
+use itertools::Itertools;
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
@@ -9,11 +9,14 @@ pub fn solve() -> (impl Display, impl Display, impl Display) {
 
 #[inline]
 pub fn solve_part1() -> impl Display {
-    let mut seqs = include_str!("part1.txt")
+    let scales = include_str!("part1.txt")
         .lines()
-        .map(|line| line.split_once(':').unwrap().1.as_bytes());
-    let seqs: [&[u8]; 3] = std::array::from_fn(|_| seqs.next().unwrap());
+        .map(|line| line.split_once(':').unwrap().1.as_bytes())
+        .collect_array().unwrap();
+    similarity(scales).unwrap()
+}
 
+fn similarity(seqs: [&[u8]; 3]) -> Option<u32> {
     let mut can_be_child = [true, true, true];
     for i in 0..seqs[0].len() {
         let a = seqs[0][i];
@@ -29,9 +32,9 @@ pub fn solve_part1() -> impl Display {
             can_be_child[2] = false;
         }
     }
-    debug_assert_eq!(can_be_child.iter().filter(|&&x| x).count(), 1);
+    debug_assert!(can_be_child.iter().filter(|&&x| x).count() <= 1);
 
-    let child_idx = can_be_child.iter().position(|&x| x).unwrap();
+    let child_idx = can_be_child.iter().position(|&x| x)?;
     let parents = if child_idx == 0 {
         [1, 2]
     } else if child_idx == 1 {
@@ -41,16 +44,15 @@ pub fn solve_part1() -> impl Display {
     };
     let mut result = 1;
     for p in parents {
-        let mut score = 0;
+        let mut matches = 0;
         for (i, &g) in seqs[child_idx].iter().enumerate() {
             if g == seqs[p][i] {
-                score += 1;
+                matches += 1;
             }
         }
-        result *= score;
+        result *= matches;
     }
-
-    result
+    Some(result)
 }
 
 #[inline]
@@ -59,30 +61,11 @@ pub fn solve_part2() -> impl Display {
         .lines()
         .map(|line| line.split_once(':').unwrap().1.as_bytes());
 
-    list.permutations(3)
-        .map(|candidate_family| {
-            let mother = candidate_family[0];
-            let father = candidate_family[1];
-            let child = candidate_family[2];
-
-            let mut mother_sim = 0;
-            let mut father_sim = 0;
-            for (m, f, c) in izip!(mother, father, child) {
-                if m == c {
-                    mother_sim += 1;
-                }
-                if f == c {
-                    father_sim += 1;
-                }
-                if m != c && f != c {
-                    return 0;
-                }
-            }
-
-            father_sim * mother_sim
+    list.array_combinations()
+        .filter_map(|candidate_family| {
+            similarity(candidate_family)
         })
-        .sum::<usize>()
-        / 2
+        .sum::<u32>()
 }
 
 #[inline]
@@ -94,29 +77,22 @@ pub fn solve_part3() -> impl Display {
 
     let mut families: Vec<std::collections::HashSet<(usize, &[u8])>> = Vec::new();
 
-    list.permutations(3).for_each(|candidate_family| {
-        let mother = candidate_family[0];
-        let father = candidate_family[1];
-        let child = candidate_family[2];
-
-        for (m, f, c) in izip!(mother.1, father.1, child.1) {
-            if m != c && f != c {
-                return;
-            }
+    list.array_combinations().for_each(|candidate_family| {
+        let candidate_family_scales = candidate_family.map(|(_, dna)| dna);
+        if similarity(candidate_family_scales).is_none() {
+            return;
         }
 
         let mut new_family = HashSet::new();
         families.retain_mut(|family| {
-            if family.contains(&mother) || family.contains(&father) || family.contains(&child) {
+            if candidate_family.iter().any(|member| family.contains(member)) {
                 new_family.extend(family.iter().copied());
                 return false;
             } else {
                 return true;
             }
         });
-        new_family.insert(mother);
-        new_family.insert(father);
-        new_family.insert(child);
+        new_family.extend(candidate_family);
         families.push(new_family);
     });
 
