@@ -8,10 +8,10 @@ struct GameState {
     hideouts: u64,
     sheep: u64,
 
-    width: usize,
-    height: usize,
+    width: u8,
+    height: u8,
 
-    dragon: (usize, usize),
+    dragon: (u8, u8),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -22,8 +22,8 @@ enum Actor {
 
 #[derive(Clone, Copy, Debug)]
 struct Move {
-    row: usize,
-    col: usize,
+    row: u8,
+    col: u8,
     actor: Actor,
 }
 
@@ -36,7 +36,7 @@ impl Display for Move {
                 Actor::Sheep => 'S',
                 Actor::Dragon => 'D',
             },
-            "ABCDEF".chars().nth(self.col).unwrap(),
+            "ABCDEF".chars().nth(self.col as usize).unwrap(),
             self.row + 1
         )?;
         Ok(())
@@ -134,15 +134,15 @@ impl GameState {
         v.into_iter()
     }
 
-    fn pos2idx(&self, (x, y): (usize, usize)) -> usize {
+    fn pos2idx(&self, (x, y): (u8, u8)) -> u8 {
         y * self.width + x
     }
 
-    fn has_sheep(&self, p: (usize, usize)) -> bool {
+    fn has_sheep(&self, p: (u8, u8)) -> bool {
         self.sheep & (1 << self.pos2idx(p)) != 0
     }
 
-    fn is_hideout(&self, p: (usize, usize)) -> bool {
+    fn is_hideout(&self, p: (u8, u8)) -> bool {
         self.hideouts & (1 << self.pos2idx(p)) != 0
     }
 }
@@ -150,8 +150,8 @@ impl GameState {
 pub fn solve() -> impl Display {
     memoized_flush_move_sequences(); // for benchmarking
 
-    let width = include_str!("part3.txt").lines().next().unwrap().trim().len();
-    let height = include_str!("part3.txt").lines().count();
+    let width = include_str!("part3.txt").lines().next().unwrap().trim().len() as _;
+    let height = include_str!("part3.txt").lines().count() as _;
 
     let mut board = GameState {
         width,
@@ -161,8 +161,8 @@ pub fn solve() -> impl Display {
         dragon: (0, 0),
     };
 
-    for (y, row) in include_str!("part3.txt").lines().enumerate() {
-        for (x, cell) in row.bytes().enumerate() {
+    for (y, row) in (0..).zip(include_str!("part3.txt").lines()) {
+        for (x, cell) in (0..).zip(row.bytes()) {
             match cell {
                 b'S' => board.sheep |= 1 << board.pos2idx((x, y)),
                 b'#' => board.hideouts |= 1 << board.pos2idx((x, y)),
@@ -176,7 +176,7 @@ pub fn solve() -> impl Display {
 }
 
 #[memoize(CustomHasher: FxHashMap, HasherInit: FxHashMap::default())]
-fn move_sequences(board: GameState, sheeps_turn: bool) -> usize {
+fn move_sequences(board: GameState, sheeps_turn: bool) -> u64 {
     if board.sheep == 0 {
         return 1;
     }
