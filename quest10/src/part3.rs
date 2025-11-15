@@ -1,4 +1,4 @@
-use std::{fmt::Display};
+use std::fmt::Display;
 
 use memoize::memoize;
 use rustc_hash::FxHashMap;
@@ -29,12 +29,16 @@ struct Move {
 
 impl Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}>{}{}",
+        write!(
+            f,
+            "{}>{}{}",
             match self.actor {
                 Actor::Sheep => 'S',
                 Actor::Dragon => 'D',
-            }
-            , "ABCDEF".chars().nth(self.col).unwrap(), self.row+1)?;
+            },
+            "ABCDEF".chars().nth(self.col).unwrap(),
+            self.row + 1
+        )?;
         Ok(())
     }
 }
@@ -86,7 +90,14 @@ impl GameState {
                 new_self.sheep &= !(1 << self.pos2idx(p));
             }
 
-            (new_self, Move { row: p.1, col: p.0, actor: Actor::Dragon })
+            (
+                new_self,
+                Move {
+                    row: p.1,
+                    col: p.0,
+                    actor: Actor::Dragon,
+                },
+            )
         })
     }
 
@@ -99,15 +110,20 @@ impl GameState {
                     continue;
                 }
                 let mut new_self = *self;
-                if y == self.height - 1 
-                    || (self.is_hideout((x,y+1)) || self.dragon != (x,y+1))
-                {
+                if y == self.height - 1 || (self.is_hideout((x, y + 1)) || self.dragon != (x, y + 1)) {
                     new_self.sheep &= !(1 << self.pos2idx((x, y)));
 
                     if y != self.height - 1 {
-                        new_self.sheep |= 1 << self.pos2idx((x, y+1));
+                        new_self.sheep |= 1 << self.pos2idx((x, y + 1));
                     }
-                    v.push((new_self, Some(Move { row: y + 1, col: x, actor: Actor::Sheep })));
+                    v.push((
+                        new_self,
+                        Some(Move {
+                            row: y + 1,
+                            col: x,
+                            actor: Actor::Sheep,
+                        }),
+                    ));
                 }
             }
         }
@@ -166,19 +182,25 @@ fn move_sequences(board: GameState, sheeps_turn: bool) -> usize {
     }
 
     if sheeps_turn {
-        board.sheep_moves().map(|(new_board, maybe_move)| {
-            if let Some(m) = maybe_move 
-                && m.row >= board.height
-            {
-                return 0;
-            }
+        board
+            .sheep_moves()
+            .map(|(new_board, maybe_move)| {
+                if let Some(m) = maybe_move
+                    && ((m.row >= board.height) || (new_board.is_hideout((m.col, m.row)) && m.col != 3))
+                {
+                    // The second condition of the OR represents an assumption: in every column but
+                    // the middle one, as soon as hideouts start it's hideouts all the way down,
+                    // which means that if a sheep gets into an hideout it can escape unscathed.
+                    return 0;
+                }
 
-            move_sequences(new_board, false)
-        }).sum()
+                move_sequences(new_board, false)
+            })
+            .sum()
     } else {
-        board.dragon_moves().map(|(new_board, _)| {
-            move_sequences(new_board, true)
-        }).sum()
+        board
+            .dragon_moves()
+            .map(|(new_board, _)| move_sequences(new_board, true))
+            .sum()
     }
-    
 }

@@ -1,6 +1,4 @@
-use std::iter::once;
-use std::mem::swap;
-use std::{collections::HashSet, fmt::Display};
+use std::{collections::HashSet, fmt::Display, iter::once, mem::swap};
 
 mod part3;
 
@@ -44,8 +42,7 @@ impl Board {
         if actual_y > self.height {
             return None;
         }
-        (self.sheep[actual_y] & (1 << x) != 0)
-        .then_some((x, actual_y))
+        (self.sheep[actual_y] & (1 << x) != 0).then_some((x, actual_y))
     }
 }
 
@@ -144,4 +141,3 @@ pub fn solve_part2() -> impl Display {
 pub fn solve_part3() -> impl Display {
     part3::solve()
 }
-
