@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use arrayvec::ArrayVec;
 use memoize::memoize;
 use rustc_hash::FxHashMap;
 
@@ -42,24 +43,24 @@ impl GameState {
     }
 
     fn sheep_moves(&self, hideouts: u64) -> impl Iterator<Item = (Self, Option<(u8, u8)>)> {
-        let mut v = Vec::new();
+        let mut v = ArrayVec::<(Self, Option<(u8,u8)>), 5>::new();
 
-        for y in 0..HEIGHT {
-            for x in 0..WIDTH {
-                if !self.has_sheep((x, y)) {
-                    continue;
+        let mut sheep = self.sheep;
+        while sheep != 0 {
+            let idx = sheep.trailing_zeros() as u8;
+            sheep &= sheep - 1;
+            let x = idx % WIDTH;
+            let y = idx / WIDTH;
+            let mut new_self = *self;
+            if y == HEIGHT - 1 || ((hideouts & (1 << pos2idx((x, y + 1))) != 0) || self.dragon != (x, y + 1)) {
+                new_self.sheep &= !(1 << pos2idx((x, y)));
+                if y != HEIGHT - 1 {
+                    new_self.sheep |= 1 << pos2idx((x, y + 1));
                 }
-                let mut new_self = *self;
-                if y == HEIGHT - 1 || ((hideouts & (1 << pos2idx((x, y + 1))) != 0) || self.dragon != (x, y + 1)) {
-                    new_self.sheep &= !(1 << pos2idx((x, y)));
-
-                    if y != HEIGHT - 1 {
-                        new_self.sheep |= 1 << pos2idx((x, y + 1));
-                    }
-                    v.push((new_self, Some((x, y + 1))));
-                }
+                v.push((new_self, Some((x, y + 1))));
             }
         }
+
         if v.is_empty() {
             v.push((*self, None));
         }
