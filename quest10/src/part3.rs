@@ -147,6 +147,7 @@ impl GameState {
     }
 }
 
+#[inline]
 pub fn solve() -> impl Display {
     memoized_flush_move_sequences(); // for benchmarking
 
