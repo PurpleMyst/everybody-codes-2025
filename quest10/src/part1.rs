@@ -2,16 +2,15 @@ use std::{fmt::Display, iter::once, mem::swap};
 
 use rustc_hash::FxHashSet as HashSet;
 
+const SIDE: u8 = 21;
+
 struct Board {
     /// per-row bitmask of sheep
-    sheep: Vec<u128>,
-
-    width: usize,
-    height: usize,
+    sheep: [u32; SIDE as usize],
 }
 
 impl Board {
-    fn dragon_moves(&self, (x, y): (usize, usize)) -> impl Iterator<Item = (usize, usize)> {
+    fn dragon_moves(&self, (x, y): (u8, u8)) -> impl Iterator<Item = (u8, u8)> {
         [
             (x.wrapping_sub(2), y.wrapping_sub(1)),
             (x.wrapping_sub(1), y.wrapping_sub(2)),
@@ -23,38 +22,32 @@ impl Board {
             (x.wrapping_add(1), y.wrapping_sub(2)),
         ]
         .into_iter()
-        .filter(|&(x, y)| x < self.width && y < self.height)
+        .filter(|&(x, y)| x < SIDE && y < SIDE)
     }
 
-    fn has_sheep(&self, (x, y): (usize, usize)) -> bool {
-        self.sheep[y] & (1 << x) != 0
+    fn has_sheep(&self, (x, y): (u8, u8)) -> bool {
+        self.sheep[y as usize] & (1 << x) != 0
     }
 }
 
 #[inline]
 pub fn solve() -> impl Display {
-    let mut dragon = None;
-    let mut sheep = Vec::new();
-    let mut width = 0;
-    let mut height = 0;
+    let mut dragon = (0, 0);
+    let mut sheep = [0u32; SIDE as usize];
     for (y, row) in include_str!("part1.txt").lines().enumerate() {
-        height = y + 1;
-        let mut row_sheep = 0;
         for (x, cell) in row.bytes().enumerate() {
-            width = x + 1;
             match cell {
-                b'S' => row_sheep |= 1 << x,
-                b'D' => dragon = Some((x, y)),
+                b'S' => sheep[y] |= 1 << x,
+                b'D' => dragon = (x as u8, y as u8),
                 _ => {}
             }
         }
-        sheep.push(row_sheep);
     }
-    let board = Board { sheep, width, height };
+    let board = Board { sheep };
 
     let mut states = HashSet::default();
     let mut next_states = states.clone();
-    states.insert(dragon.unwrap());
+    states.insert(dragon);
     for _ in 0..4 {
         next_states.extend(states.drain().flat_map(|d| once(d).chain(board.dragon_moves(d))));
         swap(&mut states, &mut next_states);
