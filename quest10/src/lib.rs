@@ -4,7 +4,6 @@ mod part1;
 mod part2;
 mod part3;
 
-
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
     (solve_part1(), solve_part2(), solve_part3())

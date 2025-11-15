@@ -50,11 +50,7 @@ pub fn solve() -> impl Display {
         }
         sheep.push(row_sheep);
     }
-    let board = Board {
-        sheep,
-        width,
-        height,
-    };
+    let board = Board { sheep, width, height };
 
     let mut states = HashSet::default();
     let mut next_states = states.clone();

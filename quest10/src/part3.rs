@@ -3,14 +3,13 @@ use std::fmt::Display;
 use memoize::memoize;
 use rustc_hash::FxHashMap;
 
+const WIDTH: u8 = 7;
+const HEIGHT: u8 = 6;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct GameState {
     hideouts: u64,
     sheep: u64,
-
-    width: u8,
-    height: u8,
-
     dragon: (u8, u8),
 }
 
@@ -45,8 +44,8 @@ impl Display for Move {
 
 impl Display for GameState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for y in 0..self.height {
-            for x in 0..self.width {
+        for y in 0..HEIGHT {
+            for x in 0..WIDTH {
                 if self.is_hideout((x, y)) {
                     write!(f, "\x1b[32m")?;
                 }
@@ -83,7 +82,7 @@ impl GameState {
             (x.wrapping_add(1), y.wrapping_sub(2)),
         ]
         .into_iter()
-        .filter(|&(x, y)| x < self.width && y < self.height)
+        .filter(|&(x, y)| x < WIDTH && y < HEIGHT)
         .map(|p| {
             let mut new_self = Self { dragon: p, ..*self };
             if self.has_sheep(p) && !self.is_hideout(p) {
@@ -104,16 +103,16 @@ impl GameState {
     fn sheep_moves(&self) -> impl Iterator<Item = (Self, Option<Move>)> {
         let mut v = Vec::new();
 
-        for y in 0..self.height {
-            for x in 0..self.width {
+        for y in 0..HEIGHT {
+            for x in 0..WIDTH {
                 if !self.has_sheep((x, y)) {
                     continue;
                 }
                 let mut new_self = *self;
-                if y == self.height - 1 || (self.is_hideout((x, y + 1)) || self.dragon != (x, y + 1)) {
+                if y == HEIGHT - 1 || (self.is_hideout((x, y + 1)) || self.dragon != (x, y + 1)) {
                     new_self.sheep &= !(1 << self.pos2idx((x, y)));
 
-                    if y != self.height - 1 {
+                    if y != HEIGHT - 1 {
                         new_self.sheep |= 1 << self.pos2idx((x, y + 1));
                     }
                     v.push((
@@ -135,7 +134,7 @@ impl GameState {
     }
 
     fn pos2idx(&self, (x, y): (u8, u8)) -> u8 {
-        y * self.width + x
+        y * WIDTH + x
     }
 
     fn has_sheep(&self, p: (u8, u8)) -> bool {
@@ -151,12 +150,7 @@ impl GameState {
 pub fn solve() -> impl Display {
     memoized_flush_move_sequences(); // for benchmarking
 
-    let width = include_str!("part3.txt").lines().next().unwrap().trim().len() as _;
-    let height = include_str!("part3.txt").lines().count() as _;
-
     let mut board = GameState {
-        width,
-        height,
         sheep: 0,
         hideouts: 0,
         dragon: (0, 0),
@@ -187,7 +181,7 @@ fn move_sequences(board: GameState, sheeps_turn: bool) -> u64 {
             .sheep_moves()
             .map(|(new_board, maybe_move)| {
                 if let Some(m) = maybe_move
-                    && ((m.row >= board.height) || (new_board.is_hideout((m.col, m.row)) && m.col != 3))
+                    && ((m.row >= HEIGHT) || (new_board.is_hideout((m.col, m.row)) && m.col != 3))
                 {
                     // The second condition of the OR represents an assumption: in every column but
                     // the middle one, as soon as hideouts start it's hideouts all the way down,
