@@ -8,68 +8,16 @@ const HEIGHT: u8 = 6;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct GameState {
-    hideouts: u64,
     sheep: u64,
     dragon: (u8, u8),
 }
 
-#[derive(Clone, Copy, Debug)]
-enum Actor {
-    Sheep,
-    Dragon,
-}
-
-#[derive(Clone, Copy, Debug)]
-struct Move {
-    row: u8,
-    col: u8,
-    actor: Actor,
-}
-
-impl Display for Move {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}>{}{}",
-            match self.actor {
-                Actor::Sheep => 'S',
-                Actor::Dragon => 'D',
-            },
-            "ABCDEF".chars().nth(self.col as usize).unwrap(),
-            self.row + 1
-        )?;
-        Ok(())
-    }
-}
-
-impl Display for GameState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for y in 0..HEIGHT {
-            for x in 0..WIDTH {
-                if self.is_hideout((x, y)) {
-                    write!(f, "\x1b[32m")?;
-                }
-
-                if self.dragon == (x, y) {
-                    write!(f, "D")?;
-                } else if self.has_sheep((x, y)) {
-                    write!(f, "S")?;
-                } else if self.is_hideout((x, y)) {
-                    write!(f, "#")?;
-                } else {
-                    write!(f, ".")?;
-                }
-
-                write!(f, "\x1b[0m")?;
-            }
-            writeln!(f)?;
-        }
-        Ok(())
-    }
+fn pos2idx((x, y): (u8, u8)) -> u8 {
+    y * WIDTH + x
 }
 
 impl GameState {
-    fn dragon_moves(&self) -> impl Iterator<Item = (Self, Move)> {
+    fn dragon_moves(&self, hideouts: u64) -> impl Iterator<Item = Self> {
         let (x, y) = self.dragon;
         [
             (x.wrapping_sub(2), y.wrapping_sub(1)),
@@ -83,24 +31,17 @@ impl GameState {
         ]
         .into_iter()
         .filter(|&(x, y)| x < WIDTH && y < HEIGHT)
-        .map(|p| {
+        .map(move |p| {
             let mut new_self = Self { dragon: p, ..*self };
-            if self.has_sheep(p) && !self.is_hideout(p) {
-                new_self.sheep &= !(1 << self.pos2idx(p));
+            if self.has_sheep(p) && (hideouts & (1 << pos2idx(p)) == 0) {
+                new_self.sheep &= !(1 << pos2idx(p));
             }
 
-            (
-                new_self,
-                Move {
-                    row: p.1,
-                    col: p.0,
-                    actor: Actor::Dragon,
-                },
-            )
+            new_self
         })
     }
 
-    fn sheep_moves(&self) -> impl Iterator<Item = (Self, Option<Move>)> {
+    fn sheep_moves(&self, hideouts: u64) -> impl Iterator<Item = (Self, Option<(u8, u8)>)> {
         let mut v = Vec::new();
 
         for y in 0..HEIGHT {
@@ -109,20 +50,13 @@ impl GameState {
                     continue;
                 }
                 let mut new_self = *self;
-                if y == HEIGHT - 1 || (self.is_hideout((x, y + 1)) || self.dragon != (x, y + 1)) {
-                    new_self.sheep &= !(1 << self.pos2idx((x, y)));
+                if y == HEIGHT - 1 || ((hideouts & (1 << pos2idx((x, y + 1))) != 0) || self.dragon != (x, y + 1)) {
+                    new_self.sheep &= !(1 << pos2idx((x, y)));
 
                     if y != HEIGHT - 1 {
-                        new_self.sheep |= 1 << self.pos2idx((x, y + 1));
+                        new_self.sheep |= 1 << pos2idx((x, y + 1));
                     }
-                    v.push((
-                        new_self,
-                        Some(Move {
-                            row: y + 1,
-                            col: x,
-                            actor: Actor::Sheep,
-                        }),
-                    ));
+                    v.push((new_self, Some((x, y + 1))));
                 }
             }
         }
@@ -133,16 +67,8 @@ impl GameState {
         v.into_iter()
     }
 
-    fn pos2idx(&self, (x, y): (u8, u8)) -> u8 {
-        y * WIDTH + x
-    }
-
     fn has_sheep(&self, p: (u8, u8)) -> bool {
-        self.sheep & (1 << self.pos2idx(p)) != 0
-    }
-
-    fn is_hideout(&self, p: (u8, u8)) -> bool {
-        self.hideouts & (1 << self.pos2idx(p)) != 0
+        self.sheep & (1 << pos2idx(p)) != 0
     }
 }
 
@@ -150,38 +76,38 @@ impl GameState {
 pub fn solve() -> impl Display {
     memoized_flush_move_sequences(); // for benchmarking
 
-    let mut board = GameState {
+    let mut initial_state = GameState {
         sheep: 0,
-        hideouts: 0,
         dragon: (0, 0),
     };
+    let mut hideouts = 0;
 
     for (y, row) in (0..).zip(include_str!("part3.txt").lines()) {
         for (x, cell) in (0..).zip(row.bytes()) {
             match cell {
-                b'S' => board.sheep |= 1 << board.pos2idx((x, y)),
-                b'#' => board.hideouts |= 1 << board.pos2idx((x, y)),
-                b'D' => board.dragon = (x, y),
+                b'S' => initial_state.sheep |= 1 << pos2idx((x, y)),
+                b'#' => hideouts |= 1 << pos2idx((x, y)),
+                b'D' => initial_state.dragon = (x, y),
                 _ => {}
             }
         }
     }
 
-    move_sequences(board, true)
+    move_sequences(initial_state, hideouts, true)
 }
 
-#[memoize(CustomHasher: FxHashMap, HasherInit: FxHashMap::default())]
-fn move_sequences(board: GameState, sheeps_turn: bool) -> u64 {
-    if board.sheep == 0 {
+#[memoize(Ignore: hideouts, CustomHasher: FxHashMap, HasherInit: FxHashMap::default())]
+fn move_sequences(state: GameState, hideouts: u64, sheeps_turn: bool) -> u64 {
+    if state.sheep == 0 {
         return 1;
     }
 
     if sheeps_turn {
-        board
-            .sheep_moves()
-            .map(|(new_board, maybe_move)| {
-                if let Some(m) = maybe_move
-                    && ((m.row >= HEIGHT) || (new_board.is_hideout((m.col, m.row)) && m.col != 3))
+        state
+            .sheep_moves(hideouts)
+            .map(|(new_state, maybe_move)| {
+                if let Some(p) = maybe_move
+                    && ((p.1 >= HEIGHT) || (hideouts & (1 << pos2idx(p)) != 0 && p.0 != 3))
                 {
                     // The second condition of the OR represents an assumption: in every column but
                     // the middle one, as soon as hideouts start it's hideouts all the way down,
@@ -189,13 +115,13 @@ fn move_sequences(board: GameState, sheeps_turn: bool) -> u64 {
                     return 0;
                 }
 
-                move_sequences(new_board, false)
+                move_sequences(new_state, hideouts, false)
             })
             .sum()
     } else {
-        board
-            .dragon_moves()
-            .map(|(new_board, _)| move_sequences(new_board, true))
+        state
+            .dragon_moves(hideouts)
+            .map(|new_state| move_sequences(new_state, hideouts, true))
             .sum()
     }
 }
