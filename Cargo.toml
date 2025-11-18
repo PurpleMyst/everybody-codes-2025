@@ -12,6 +12,7 @@ members = [
     "quest08",
     "quest09",
     "quest10",
+    "quest11",
 ]
 
 [workspace.metadata.quest01]
@@ -53,5 +54,8 @@ completion_time = 2025-11-14T03:22:57.756006
 [workspace.metadata.quest10]
 start_time = 2025-11-15T01:03:00.291710
 completion_time = 2025-11-15T02:03:11.134864
+
+[workspace.metadata.quest11]
+start_time = 2025-11-18T15:33:41.655652
 [profile.release]
 debug = true

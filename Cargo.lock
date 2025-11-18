@@ -69,6 +69,7 @@ dependencies = [
  "quest08",
  "quest09",
  "quest10",
+ "quest11",
 ]
 
 [[package]]
@@ -457,6 +458,10 @@ dependencies = [
  "memoize",
  "rustc-hash",
 ]
+
+[[package]]
+name = "quest11"
+version = "0.1.0"
 
 [[package]]
 name = "quote"
