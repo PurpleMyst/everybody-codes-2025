@@ -4,4 +4,5 @@ flamegraph.svg
 *.py
 !tasks.py
 !linear_algebra.py
+!proto.py
 data.txt
