@@ -1,13 +1,4 @@
-use std::{cmp::Ordering, fmt::Display};
-
-const BOLD: &str = "\x1b[1m";
-const DIM: &str = "\x1b[2m";
-
-const RED: &str = "\x1b[31m";
-const GREEN: &str = "\x1b[32m";
-const YELLOW: &str = "\x1b[33m";
-
-const RESET: &str = "\x1b[0m";
+use std::fmt::Display;
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
@@ -77,21 +68,10 @@ pub fn solve_part2() -> impl Display {
     let mut round = 0;
         // First phase
 
-    print!("\t");
-    for c in &ducks {
-        print!("{DIM}{c}{RESET} ");
-    }
-    println!();
     for _ in 0..2 {
-        print!("\t");
-        for c in &ducks {
-            print!("{}-", "-".repeat((1 + c.ilog10()) as _));
-        }
-        println!("\x1b[D ");
         let len = ducks.len();
 
         loop {
-            let prev = ducks.clone();
             let mut moved = false;
 
             let mut i = 0;
@@ -121,16 +101,6 @@ pub fn solve_part2() -> impl Display {
                 break;
             }
 
-            print!("\t");
-            for (p, c) in prev.into_iter().zip(ducks.iter()) {
-                match c.cmp(&p) {
-                    Ordering::Less => print!("{BOLD}{RED}{c}{RESET} "),
-                    Ordering::Equal => print!("{DIM}{YELLOW}{c}{RESET} "),
-                    Ordering::Greater => print!("{BOLD}{GREEN}{c}{RESET} "),
-                }
-            }
-            println!();
-
             round += 1;
         }
         ducks.reverse();
@@ -142,7 +112,12 @@ pub fn solve_part2() -> impl Display {
 
 #[inline]
 pub fn solve_part3() -> impl Display {
-    "TODO"
+    let ducks = include_str!("part3.txt")
+        .lines()
+        .map(|line| line.parse::<u64>().unwrap())
+        .collect::<Vec<u64>>();
+    let mean = ducks.iter().sum::<u64>() / ducks.len() as u64;
+    ducks.iter().map(|&duck| mean.saturating_sub(duck)).sum::<u64>()
 }
 
 
