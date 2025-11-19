@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, fmt::Display};
+use std::fmt::Display;
 
 use rayon::prelude::*;
 
