@@ -53,27 +53,24 @@ fn solve_part23(input: &str, turns: usize) -> u32 {
     let mut wheel = VecDeque::new();
     wheel.push_back(Item { bounds: (1, 1), forward: true });
 
+    // Construct the wheel and compute length and target position while doing so;
+    // the target position is `turns` indices after the initial `1`, so if we're moving that we
+    // should offset the target position as well.
     let mut len = 1usize;
-
+    let mut target = turns;
     for (i, (a, b)) in xs.enumerate() {
         if i % 2 == 0 {
             wheel.push_back(Item { bounds: (a, b), forward: true });
         } else {
             wheel.push_front(Item { bounds: (a, b), forward: false });
+            target += (b - a + 1) as usize;
         }
         len += (b - a + 1) as usize;
     }
-
-    let mut target = turns;
-    for &item in &wheel {
-        if item.bounds == (1, 1) {
-            debug_assert!(item.forward);
-            break;
-        }
-        target += item.len();
-    }
     target %= len;
 
+    // Iterate over the list, which is in clockwise order, skipping over ranges if our target is
+    // not within them.
     let mut i = 0;
     for item in wheel {
         if i + item.len() < target {
@@ -82,9 +79,9 @@ fn solve_part23(input: &str, turns: usize) -> u32 {
         }
         let remaining = (target - i) as u32;
         if item.forward {
-            return item.bounds.0 + remaining
+            return item.bounds.0 + remaining;
         } else {
-            return item.bounds.1 - remaining
+            return item.bounds.1 - remaining;
         }
     }
     unreachable!()
