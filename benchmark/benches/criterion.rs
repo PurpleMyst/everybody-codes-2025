@@ -41,4 +41,5 @@ problems!(
     quest09,
     quest10,
     quest11,
+    quest12,
 );
