@@ -71,6 +71,7 @@ dependencies = [
  "quest10",
  "quest11",
  "quest12",
+ "quest13",
 ]
 
 [[package]]
@@ -470,6 +471,10 @@ version = "0.1.0"
 dependencies = [
  "rayon",
 ]
+
+[[package]]
+name = "quest13"
+version = "0.1.0"
 
 [[package]]
 name = "quote"
