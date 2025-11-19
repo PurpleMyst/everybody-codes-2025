@@ -73,30 +73,32 @@ pub fn solve_part2() -> impl Display {
         .map(|line| Scale::new(line.split_once(':').unwrap().1.as_bytes()))
         .collect_vec();
 
-    list.par_iter().filter_map(|child| {
-        let candidates = list
-            .iter()
-            .filter(|&duck| duck != child)
-            .sorted_unstable_by_key(|duck| Reverse(duck.same_mask(&child).count_ones()))
-            .collect_vec();
+    list.par_iter()
+        .filter_map(|child| {
+            let candidates = list
+                .iter()
+                .filter(|&duck| duck != child)
+                .sorted_unstable_by_key(|duck| Reverse(duck.same_mask(&child).count_ones()))
+                .collect_vec();
 
-        for (i, mother) in candidates.iter().enumerate() {
-            let mother_mask = mother.same_mask(&child);
-            let mother_matches = mother_mask.count_ones();
+            for (i, mother) in candidates.iter().enumerate() {
+                let mother_mask = mother.same_mask(&child);
+                let mother_matches = mother_mask.count_ones();
 
-            for father in candidates.iter().skip(i + 1) {
-                let father_mask = father.same_mask(&child);
-                let father_matches = father_mask.count_ones();
-                if mother_matches + father_matches < 128 {
-                    break;
-                }
-                if mother_mask | father_mask == u128::MAX {
-                    return Some(father_matches * mother_matches);
+                for father in candidates.iter().skip(i + 1) {
+                    let father_mask = father.same_mask(&child);
+                    let father_matches = father_mask.count_ones();
+                    if mother_matches + father_matches < 128 {
+                        break;
+                    }
+                    if mother_mask | father_mask == u128::MAX {
+                        return Some(father_matches * mother_matches);
+                    }
                 }
             }
-        }
-        return None;
-    }).sum::<u32>()
+            return None;
+        })
+        .sum::<u32>()
 }
 
 #[inline]
@@ -109,30 +111,33 @@ pub fn solve_part3() -> impl Display {
         })
         .collect_vec();
 
-    let triplets = list.par_iter().filter_map(|child| {
-        let candidates = list
-            .iter()
-            .filter(|&duck| duck != child)
-            .sorted_unstable_by_key(|duck| Reverse(duck.1.same_mask(&child.1).count_ones()))
-            .collect_vec();
+    let triplets = list
+        .par_iter()
+        .filter_map(|child| {
+            let candidates = list
+                .iter()
+                .filter(|&duck| duck != child)
+                .sorted_unstable_by_key(|duck| Reverse(duck.1.same_mask(&child.1).count_ones()))
+                .collect_vec();
 
-        for (i, mother) in candidates.iter().enumerate() {
-            let mother_mask = mother.1.same_mask(&child.1);
-            let mother_matches = mother_mask.count_ones();
+            for (i, mother) in candidates.iter().enumerate() {
+                let mother_mask = mother.1.same_mask(&child.1);
+                let mother_matches = mother_mask.count_ones();
 
-            for father in candidates.iter().skip(i + 1) {
-                let father_mask = father.1.same_mask(&child.1);
-                let father_matches = father_mask.count_ones();
-                if mother_matches + father_matches < 128 {
-                    break;
-                }
-                if mother_mask | father_mask == u128::MAX {
-                    return Some((mother.0, father.0, child.0));
+                for father in candidates.iter().skip(i + 1) {
+                    let father_mask = father.1.same_mask(&child.1);
+                    let father_matches = father_mask.count_ones();
+                    if mother_matches + father_matches < 128 {
+                        break;
+                    }
+                    if mother_mask | father_mask == u128::MAX {
+                        return Some((mother.0, father.0, child.0));
+                    }
                 }
             }
-        }
-        return None;
-    }).collect_vec_list();
+            return None;
+        })
+        .collect_vec_list();
 
     let mut ds = disjoint::DisjointSet::with_len(list.len());
     for (m, f, c) in triplets.into_iter().flatten() {

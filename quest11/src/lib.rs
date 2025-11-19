@@ -66,7 +66,7 @@ pub fn solve_part2() -> impl Display {
         .map(|line| line.parse::<u64>().unwrap())
         .collect::<Vec<u64>>();
     let mut round = 0;
-        // First phase
+    // First phase
 
     for _ in 0..2 {
         let len = ducks.len();
@@ -75,7 +75,7 @@ pub fn solve_part2() -> impl Display {
             let mut moved = false;
 
             let mut i = 0;
-            'outer: while i < ducks.len() -1 {
+            'outer: while i < ducks.len() - 1 {
                 if ducks[i] <= ducks[i + 1] {
                     i += 1;
                     continue;
@@ -106,7 +106,6 @@ pub fn solve_part2() -> impl Display {
         ducks.reverse();
     }
 
-
     round
 }
 
@@ -119,6 +118,3 @@ pub fn solve_part3() -> impl Display {
     let mean = ducks.iter().sum::<u64>() / ducks.len() as u64;
     ducks.iter().map(|&duck| mean.saturating_sub(duck)).sum::<u64>()
 }
-
-
-

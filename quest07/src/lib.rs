@@ -88,7 +88,6 @@ pub fn solve_part3() -> impl Display {
         }
     }
 
-
     states_by_len
         .into_iter()
         .enumerate()

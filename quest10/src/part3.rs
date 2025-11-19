@@ -43,7 +43,7 @@ impl GameState {
     }
 
     fn sheep_moves(&self, hideouts: u64) -> impl Iterator<Item = (Self, Option<(u8, u8)>)> {
-        let mut v = ArrayVec::<(Self, Option<(u8,u8)>), 5>::new();
+        let mut v = ArrayVec::<(Self, Option<(u8, u8)>), 5>::new();
 
         let mut sheep = self.sheep;
         while sheep != 0 {
