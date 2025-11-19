@@ -1,5 +1,7 @@
 use std::{collections::VecDeque, fmt::Display};
 
+use atoi::FromRadix10;
+
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
     (solve_part1(), solve_part2(), solve_part3())
@@ -8,7 +10,7 @@ pub fn solve() -> (impl Display, impl Display, impl Display) {
 #[inline]
 pub fn solve_part1() -> impl Display {
     let input = include_str!("part1.txt");
-    let xs = input.lines().map(|line| line.parse::<u16>().unwrap());
+    let xs = input.lines().map(|line| u16::from_radix_10(line.as_bytes()).0);
     let mut wheel = VecDeque::new();
     wheel.push_back(1);
     for (i, x) in xs.enumerate() {
@@ -48,7 +50,7 @@ pub fn solve_part3() -> impl Display {
 fn solve_part23(input: &str, turns: usize) -> u32 {
     let xs = input.lines().map(|line| {
         let (a, b) = line.split_once('-').unwrap();
-        (a.parse::<u32>().unwrap(), b.parse::<u32>().unwrap())
+        (u32::from_radix_10(a.as_bytes()).0, u32::from_radix_10(b.as_bytes()).0)
     });
     let mut wheel = VecDeque::new();
     wheel.push_back(Item { bounds: (1, 1), forward: true });

@@ -475,6 +475,9 @@ dependencies = [
 [[package]]
 name = "quest13"
 version = "0.1.0"
+dependencies = [
+ "atoi",
+]
 
 [[package]]
 name = "quote"
