@@ -72,6 +72,7 @@ dependencies = [
  "quest11",
  "quest12",
  "quest13",
+ "quest14",
 ]
 
 [[package]]
@@ -478,6 +479,10 @@ version = "0.1.0"
 dependencies = [
  "atoi",
 ]
+
+[[package]]
+name = "quest14"
+version = "0.1.0"
 
 [[package]]
 name = "quote"
