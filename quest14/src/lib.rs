@@ -36,6 +36,8 @@ pub fn solve_part2() -> impl Display {
 
 #[inline]
 pub fn solve_part3() -> impl Display {
+    const ROUNDS: usize = 1_000_000_000;
+
     let pattern = floor::Floor::load(include_str!("part3.txt"));
 
     let mut floor = floor::Floor::empty(34);
@@ -45,14 +47,14 @@ pub fn solve_part3() -> impl Display {
 
     let mut round = 0usize;
     let mut cycle_hit = false;
-    'mainloop: while round < 1_000_000_000 {
+    'mainloop: while round < ROUNDS {
         if !cycle_hit {
             match seen.entry(floor.clone()) {
                 Entry::Occupied(occupied_entry) => {
-                    let remaining = 1_000_000_000 - round;
+                    let remaining = ROUNDS - round;
                     let cycle_len = round - occupied_entry.get();
                     total *= (1 + remaining / cycle_len) as u32;
-                    round = 1_000_000_000 - (remaining % cycle_len);
+                    round = ROUNDS - (remaining % cycle_len);
                     cycle_hit = true;
                 }
                 Entry::Vacant(vacant_entry) => {

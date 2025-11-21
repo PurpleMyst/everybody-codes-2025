@@ -1,7 +1,7 @@
 #[derive(Hash, Clone, PartialEq, Eq, Debug)]
 pub struct Floor {
     pub side: usize,
-    pub active: Vec<u64>,
+    pub active: Box<[u64]>,
 }
 
 impl std::fmt::Display for Floor {
@@ -22,7 +22,7 @@ impl std::fmt::Display for Floor {
 
 impl Floor {
     pub fn empty(side: usize) -> Self {
-        Self {side, active: vec![0; side]}
+        Self {side, active: vec![0; side].into_boxed_slice() }
     }
 
     pub fn load(input: &str) -> Self {
@@ -36,7 +36,7 @@ impl Floor {
                 .for_each(|(x, _)| active[y] |= 1 << x);
         });
 
-        Self { side, active }
+        Self { side, active: active.into_boxed_slice() }
     }
 
     pub fn total_active(&self) -> u32 {
