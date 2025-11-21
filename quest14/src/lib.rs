@@ -35,9 +35,9 @@ pub fn solve_part2() -> impl Display {
 pub fn solve_part3() -> impl Display {
     const ROUNDS: usize = 1_000_000_000;
 
-    let pattern = floor::Floor::load(include_str!("part3.txt"));
+    let pattern = floor::SymmetricFloor::load(include_str!("part3.txt"));
 
-    let mut floor = floor::Floor::empty(34);
+    let mut floor = floor::SymmetricFloor::empty(34);
     let mut total = 0;
 
     let mut seen = HashMap::default();
@@ -63,9 +63,9 @@ pub fn solve_part3() -> impl Display {
         floor.step();
         round += 1;
 
-        let offset = floor.side / 2 - pattern.side / 2;
+        let offset = floor.side  - pattern.side;
         for (&pattern_row, &floor_row) in pattern.active.iter().zip(floor.active.iter().skip(offset)) {
-            if pattern_row.reverse_bits() != ((floor_row.reverse_bits() >> offset) & ((1 << pattern.side) - 1)) {
+            if pattern_row.reverse_bits() != ((floor_row.reverse_bits() >> offset) & ((1 << (pattern.side*2)) - 1)) {
                 sofar.push(total);
                 continue 'mainloop;
             }
