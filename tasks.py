@@ -81,8 +81,6 @@ pub fn solve_part3() -> impl Display {
 }\
 """
 
-DEFAULT_BASELINE = "previous"
-
 WORKSPACE_MANIFEST_PATH = Path(__file__).parent / "Cargo.toml"
 
 load_dotenv()
@@ -122,6 +120,7 @@ def in_root_dir(f):
 
     return inner
 
+
 def find_next_problem_number() -> int:
     existing_numbers = []
     for path in Path().glob(f"{PROBLEM_NAME}*"):
@@ -141,7 +140,7 @@ def start_solve(num: int | None = None) -> None:
 
     if num is None:
         num = find_next_problem_number()
-    
+
     crate = f"{PROBLEM_NAME}{int(num):02}"
     crate_path = Path(crate)
 
@@ -184,10 +183,22 @@ def start_solve(num: int | None = None) -> None:
 
 @app.command("set_baseline | sb")
 @in_root_dir
-def set_baseline(
-    *, pattern: t.Annotated[str, typer.Argument()] = ".", name: str = DEFAULT_BASELINE
-) -> None:
+def set_baseline(*, pattern: t.Annotated[str, typer.Argument()] = ".") -> None:
     "Run a criterion benchmark, setting its results as the new baseline."
+    is_dirty = (
+        run(("git", "status", "--porcelain"), capture_output=True, text=True).stdout.strip() != ""
+    )
+    if is_dirty:
+        print(
+            cb(
+                "You have uncommitted changes. Please commit or stash them before setting a baseline.",
+                "red",
+            )
+        )
+        sys.exit(1)
+    name = run(
+        ("git", "rev-parse", "--short", "HEAD"), capture_output=True, text=True
+    ).stdout.strip()
     run(
         (
             "cargo",
@@ -205,10 +216,20 @@ def set_baseline(
 
 @app.command("compare | cmp")
 @in_root_dir
-def compare(
-    *, pattern: t.Annotated[str, typer.Argument()] = ".", name: str = DEFAULT_BASELINE
-) -> None:
-    "Run a criterion benchmark, comparing its results to the saved baseline."
+def compare(*, pattern: t.Annotated[str, typer.Argument()] = ".") -> None:
+    "Run a criterion benchmark, comparing its results to the previous commit if there are no uncommitted changes, or to the current commit otherwise."
+    is_dirty = (
+        run(("git", "status", "--porcelain"), capture_output=True, text=True).stdout.strip() != ""
+    )
+    if is_dirty:
+        name = run(
+            ("git", "rev-parse", "--short", "HEAD"), capture_output=True, text=True
+        ).stdout.strip()
+    else:
+        name = run(
+            ("git", "rev-parse", "--short", "HEAD~1"), capture_output=True, text=True
+        ).stdout.strip()
+
     run(
         (
             "cargo",
@@ -226,14 +247,12 @@ def compare(
 
 @app.command("compare_by_stashing | cmp-stash")
 @in_root_dir
-def compare_by_stashing(
-    *, pattern: t.Annotated[str, typer.Argument()] = ".", name: str = DEFAULT_BASELINE
-) -> None:
+def compare_by_stashing(*, pattern: t.Annotated[str, typer.Argument()] = ".") -> None:
     "Stash the current changes, set the baseline and then compare the new changes."
     run(("git", "stash", "push", "-m", "Stashing for benchmarking"))
-    set_baseline(pattern=pattern, name=name)
+    set_baseline(pattern=pattern)
     run(("git", "stash", "pop"))
-    compare(pattern=pattern, name=name)
+    compare(pattern=pattern)
 
 
 @app.command("measure_completion_time | mct")
