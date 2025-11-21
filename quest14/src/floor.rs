@@ -8,7 +8,7 @@ impl std::fmt::Display for Floor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for y in 0..self.side {
             for x in 0..self.side {
-                if self.active[y] & (1 << x) != 0 {
+                if self.active[y].reverse_bits() & (1 << x) != 0 {
                     write!(f, "█")?;
                 } else {
                     write!(f, "░")?;
@@ -36,7 +36,7 @@ impl Floor {
             row.bytes()
                 .enumerate()
                 .filter(|&(_, b)| b == b'#')
-                .for_each(|(x, _)| active[y] |= 1 << x);
+                .for_each(|(x, _)| active[y] |= 1 << (63-x));
         });
 
         Self {
@@ -49,27 +49,14 @@ impl Floor {
         self.active.iter().map(|row| row.count_ones()).sum()
     }
 
+    // https://www.reddit.com/r/everybodycodes/comments/1p2i1ag/2025_q14_solution_spotlight/npxp3cl/
     pub fn step(&mut self) {
+        let mask = !0u64 << (64 - self.side);
         let mut prev_row = 0;
         for y in 0..self.side {
             let next_row = if y < self.side - 1 { self.active[y + 1] } else { 0 };
             let cur_row = &mut self.active[y];
-            let mut new_row = 0;
-            for x in 0..self.side {
-                let count = [
-                    x != 0 && prev_row & (1 << (x - 1)) != 0,
-                    prev_row & (1 << (x + 1)) != 0,
-                    x != 0 && next_row & (1 << (x - 1)) != 0,
-                    next_row & (1 << (x + 1)) != 0,
-                ]
-                .into_iter()
-                .filter(|&x| x)
-                .count();
-                let cur_active = *cur_row & (1 << x) != 0;
-                if (cur_active && count % 2 != 0) || (!cur_active && count % 2 == 0) {
-                    new_row |= 1 << x;
-                }
-            }
+            let new_row = !(prev_row << 1 ^ prev_row >> 1 ^ *cur_row ^ next_row << 1 ^ next_row >> 1) & mask;
             prev_row = *cur_row;
             *cur_row = new_row;
         }

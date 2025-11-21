@@ -65,7 +65,7 @@ pub fn solve_part3() -> impl Display {
 
         let offset = floor.side / 2 - pattern.side / 2;
         for (&pattern_row, &floor_row) in pattern.active.iter().zip(floor.active.iter().skip(offset)) {
-            if pattern_row != ((floor_row >> offset) & ((1 << pattern.side) - 1)) {
+            if pattern_row.reverse_bits() != ((floor_row.reverse_bits() >> offset) & ((1 << pattern.side) - 1)) {
                 sofar.push(total);
                 continue 'mainloop;
             }
