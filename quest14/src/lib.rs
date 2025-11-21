@@ -41,22 +41,22 @@ pub fn solve_part3() -> impl Display {
     let mut total = 0;
 
     let mut seen = HashMap::default();
+    seen.reserve(8192);
 
     let mut round = 0usize;
-    let mut cycle_hit = false;
-    'mainloop: while round < ROUNDS {
-        if !cycle_hit {
-            match seen.entry(floor.clone()) {
-                Entry::Occupied(occupied_entry) => {
-                    let remaining = ROUNDS - round;
-                    let cycle_len = round - occupied_entry.get();
-                    total *= (1 + remaining / cycle_len) as u32;
-                    round = ROUNDS - (remaining % cycle_len);
-                    cycle_hit = true;
-                }
-                Entry::Vacant(vacant_entry) => {
-                    vacant_entry.insert(round);
-                }
+    let mut sofar = Vec::with_capacity(8192);
+    'mainloop: loop {
+        match seen.entry(floor.clone()) {
+            Entry::Occupied(occupied_entry) => {
+                let remaining = ROUNDS - round;
+                let cycle_start = *occupied_entry.get();
+                let cycle_len = round - cycle_start;
+                total *= (1 + remaining / cycle_len) as u32;
+                total += (sofar[cycle_start + (remaining % cycle_len)] - sofar[cycle_start]) as u32;
+                return total;
+            }
+            Entry::Vacant(vacant_entry) => {
+                vacant_entry.insert(round);
             }
         }
 
@@ -66,12 +66,12 @@ pub fn solve_part3() -> impl Display {
         let offset = floor.side / 2 - pattern.side / 2;
         for (&pattern_row, &floor_row) in pattern.active.iter().zip(floor.active.iter().skip(offset)) {
             if pattern_row != ((floor_row >> offset) & ((1 << pattern.side) - 1)) {
+                sofar.push(total);
                 continue 'mainloop;
             }
         }
 
         total += floor.total_active();
+        sofar.push(total);
     }
-
-    total
 }
