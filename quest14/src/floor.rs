@@ -22,7 +22,10 @@ impl std::fmt::Display for Floor {
 
 impl Floor {
     pub fn empty(side: usize) -> Self {
-        Self {side, active: vec![0; side].into_boxed_slice() }
+        Self {
+            side,
+            active: vec![0; side].into_boxed_slice(),
+        }
     }
 
     pub fn load(input: &str) -> Self {
@@ -36,7 +39,10 @@ impl Floor {
                 .for_each(|(x, _)| active[y] |= 1 << x);
         });
 
-        Self { side, active: active.into_boxed_slice() }
+        Self {
+            side,
+            active: active.into_boxed_slice(),
+        }
     }
 
     pub fn total_active(&self) -> u32 {

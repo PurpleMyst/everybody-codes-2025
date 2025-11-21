@@ -1,7 +1,4 @@
-use std::{
-    collections::hash_map::Entry,
-    fmt::Display,
-};
+use std::{collections::hash_map::Entry, fmt::Display};
 
 use rustc_hash::FxHashMap as HashMap;
 
@@ -67,11 +64,10 @@ pub fn solve_part3() -> impl Display {
         round += 1;
 
         let offset = floor.side / 2 - pattern.side / 2;
-        for (&pattern_row, &floor_row) in
-            pattern.active.iter().zip(floor.active.iter().skip(offset)) {
-                if pattern_row != ((floor_row >> offset) & ((1 << pattern.side) - 1)) {
-                    continue 'mainloop;
-                }
+        for (&pattern_row, &floor_row) in pattern.active.iter().zip(floor.active.iter().skip(offset)) {
+            if pattern_row != ((floor_row >> offset) & ((1 << pattern.side) - 1)) {
+                continue 'mainloop;
+            }
         }
 
         total += floor.total_active();
@@ -79,4 +75,3 @@ pub fn solve_part3() -> impl Display {
 
     total
 }
-

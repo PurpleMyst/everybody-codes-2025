@@ -91,7 +91,7 @@ pub fn solve_part3() -> impl Display {
 }
 
 fn count(grid: &Grid, q: Vec<(usize, usize)>) -> usize {
-   ignite(grid, q, Visited::empty(grid)).set()
+    ignite(grid, q, Visited::empty(grid)).set()
 }
 
 fn ignite(grid: &Grid, mut q: Vec<(usize, usize)>, mut boom: Visited) -> Visited {

@@ -28,7 +28,7 @@ pub fn solve_part1() -> impl Display {
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Item {
     bounds: (u32, u32),
-    forward: bool
+    forward: bool,
 }
 
 impl Item {
@@ -53,7 +53,10 @@ fn solve_part23(input: &str, turns: usize) -> u32 {
         (u32::from_radix_10(a.as_bytes()).0, u32::from_radix_10(b.as_bytes()).0)
     });
     let mut wheel = VecDeque::new();
-    wheel.push_back(Item { bounds: (1, 1), forward: true });
+    wheel.push_back(Item {
+        bounds: (1, 1),
+        forward: true,
+    });
 
     // Construct the wheel and compute length and target position while doing so;
     // the target position is `turns` indices after the initial `1`, so if we're moving that we
@@ -62,9 +65,15 @@ fn solve_part23(input: &str, turns: usize) -> u32 {
     let mut target = turns;
     for (i, (a, b)) in xs.enumerate() {
         if i % 2 == 0 {
-            wheel.push_back(Item { bounds: (a, b), forward: true });
+            wheel.push_back(Item {
+                bounds: (a, b),
+                forward: true,
+            });
         } else {
-            wheel.push_front(Item { bounds: (a, b), forward: false });
+            wheel.push_front(Item {
+                bounds: (a, b),
+                forward: false,
+            });
             target += (b - a + 1) as usize;
         }
         len += (b - a + 1) as usize;
