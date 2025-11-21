@@ -483,9 +483,6 @@ dependencies = [
 [[package]]
 name = "quest14"
 version = "0.1.0"
-dependencies = [
- "rustc-hash",
-]
 
 [[package]]
 name = "quote"

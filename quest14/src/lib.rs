@@ -1,6 +1,4 @@
-use std::{collections::hash_map::Entry, fmt::Display};
-
-use rustc_hash::FxHashMap as HashMap;
+use std::fmt::Display;
 
 mod floor;
 
@@ -40,32 +38,25 @@ pub fn solve_part3() -> impl Display {
     let mut floor = floor::SymmetricFloor::empty(34);
     let mut total = 0;
 
-    let mut seen = HashMap::default();
-    seen.reserve(8192);
-
     let mut round = 0usize;
-    let mut sofar = Vec::with_capacity(8192);
+    let mut sofar = Vec::with_capacity(4096);
     'mainloop: loop {
-        match seen.entry(floor.clone()) {
-            Entry::Occupied(occupied_entry) => {
-                let remaining = ROUNDS - round;
-                let cycle_start = *occupied_entry.get();
-                let cycle_len = round - cycle_start;
-                total *= (1 + remaining / cycle_len) as u32;
-                total += (sofar[cycle_start + (remaining % cycle_len)] - sofar[cycle_start]) as u32;
-                return total;
-            }
-            Entry::Vacant(vacant_entry) => {
-                vacant_entry.insert(round);
-            }
+        // Assumption: the loop happens when the floor is full
+        if round != 1 && floor.total_active() == (34 * 34) {
+            let remaining = ROUNDS - round;
+            let cycle_start = 1;
+            let cycle_len = round - cycle_start;
+            total *= (1 + remaining / cycle_len) as u32;
+            total += (sofar[cycle_start + (remaining % cycle_len)] - sofar[cycle_start]) as u32;
+            return total;
         }
 
         floor.step();
         round += 1;
 
-        let offset = floor.side  - pattern.side;
+        let offset = floor.side - pattern.side;
         for (&pattern_row, &floor_row) in pattern.active.iter().zip(floor.active.iter().skip(offset)) {
-            if pattern_row.reverse_bits() != ((floor_row.reverse_bits() >> offset) & ((1 << (pattern.side*2)) - 1)) {
+            if pattern_row.reverse_bits() != ((floor_row.reverse_bits() >> offset) & ((1 << (pattern.side * 2)) - 1)) {
                 sofar.push(total);
                 continue 'mainloop;
             }
