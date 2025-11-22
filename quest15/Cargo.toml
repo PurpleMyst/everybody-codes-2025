@@ -5,3 +5,6 @@ edition = "2024"
 
 [dependencies]
 itertools = "0.14.0"
+memoize = "0.5.1"
+pathfinding = "4.14.0"
+rustc-hash = "2.1.1"
