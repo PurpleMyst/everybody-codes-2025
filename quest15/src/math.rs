@@ -1,8 +1,12 @@
+#![allow(dead_code)]
+
 use std::mem::swap;
 
 use std::ops::AddAssign;
 
 use std::ops::Add;
+use std::ops::Sub;
+use std::ops::SubAssign;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct Vec2(pub(crate) i64, pub(crate) i64);
@@ -21,10 +25,25 @@ impl Add for Vec2 {
     }
 }
 
+impl Sub for Vec2 {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 - rhs.0, self.1 - rhs.1)
+    }
+}
+
 impl AddAssign for Vec2 {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0;
         self.1 += rhs.1;
+    }
+}
+
+impl SubAssign for Vec2 {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0;
+        self.1 -= rhs.1;
     }
 }
 
@@ -57,13 +76,18 @@ impl Vec2 {
         (self.is_horizontal() && other.is_horizontal()) || (self.is_vertical() && other.is_vertical())
     }
 
-    pub(crate) fn opposite_dir(&self, other: Vec2) -> bool {
-        (self.is_horizontal() && other.is_horizontal() && self.0 == -other.0)
-            || (self.is_vertical() && other.is_vertical() && self.1 == -other.1)
-    }
-
     pub(crate) fn mag(&self) -> i64 {
         self.0.abs() + self.1.abs()
+    }
+
+    pub(crate) fn normalized(&self) -> Self {
+        let mag = self.mag();
+        debug_assert!(mag != 0);
+        Vec2(self.0 / mag, self.1 / mag)
+    }
+
+    pub(crate) fn is_zero(&self) -> bool {
+        self.0 == 0 && self.1 == 0
     }
 }
 

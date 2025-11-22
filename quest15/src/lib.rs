@@ -1,6 +1,7 @@
 use std::{fmt::Display, ops::RangeInclusive};
 
 use itertools::Itertools;
+use pathfinding::prelude::astar;
 use rustc_hash::FxHashSet as HashSet;
 
 #[inline]
@@ -25,6 +26,7 @@ pub fn solve_part2() -> impl Display {
 #[inline]
 pub fn solve_part3() -> impl Display {
     // let input = include_str!("part3.txt");
+    // draw(input);
     "TODO"
 }
 
@@ -62,50 +64,13 @@ fn draw(input: &'static str) {
         }
     });
 
-    let (cursor_visited, mut segments) = follow_wall(end, &walls);
-    dbg!(cursor_visited.len());
+    let (cursor_visited, segments) = follow_wall(end, &walls);
+    println!("INITIAL WALL-FOLLOW STEPS = {}", cursor_visited.len());
 
-    println!("{}: {segments:?}", segments.len());
-    'foo: loop {
-        let mut pos = vec2(0, -1);
-        for (i, w) in segments.windows(3).enumerate() {
-            pos += w[0];
-            if w[0].same_dir(w[2])
-                && apply(pos, w[2]).all(|step| !walls.contains(&step))
-                && apply(pos + w[2], w[1]).all(|step| !walls.contains(&step))
-            {
-                eprintln!("MERGING {w:?}");
-                let a = w[2];
-                segments[i] += a;
-                segments.remove(i + 2);
+    let (segments, cursor_visited) = reduce_segments(&walls, segments,end);
+    debug_assert_eq!(segments.iter().fold(vec2(0, -1), |acc, &v| acc + v), end);
 
-                for i in (1..segments.len()).rev() {
-                    if segments[i].same_dir(segments[i - 1]) {
-                        let k = segments[i];
-                        segments[i - 1] += k;
-                        segments.remove(i);
-                    }
-                }
-
-                continue 'foo;
-            }
-        }
-        break;
-    }
-    println!("{}: {segments:?}", segments.len());
-    println!("TOTAL STEPS = {}", segments.iter().map(|v| v.mag()).sum::<i64>());
-
-    let mut cursor_visited = HashSet::default();
-    let mut cursor = vec2(0, -1);
-    for dir in segments.into_iter() {
-        for foo in apply(cursor, dir) {
-            cursor_visited.insert(foo);
-        }
-        cursor += dir;
-    }
-    println!("calculated new cursor path");
-
-    let (path, _len) = pathfinding::prelude::astar(
+    let (_path, len) = astar(
         &vec2(0, 0),
         |&math::Vec2(cx, cy)| {
             [vec2(cx - 1, cy), vec2(cx + 1, cy), vec2(cx, cy - 1), vec2(cx, cy + 1)]
@@ -117,45 +82,112 @@ fn draw(input: &'static str) {
         |&p| p == end,
     )
     .unwrap();
-    println!("got A* path");
-    let path = path.into_iter().collect::<HashSet<_>>();
+    println!("TOTAL ASTAR STEPS = {len}");
 
-    let (x_min, x_max) = walls.iter().map(|&math::Vec2(x, _)| x).minmax().into_option().unwrap();
-    let (y_min, y_max) = walls.iter().map(|&math::Vec2(_, y)| y).minmax().into_option().unwrap();
-    let mut f = std::fs::File::create(&format!("{}_{}.ppm", end.0, end.1)).unwrap();
-    use std::io::Write;
-    writeln!(f, "P3").unwrap();
-    writeln!(f, "# everybody codes!").unwrap();
-    writeln!(f, "{} {}", x_max - x_min + 1, y_max - y_min + 1).unwrap();
-    writeln!(f, "255").unwrap();
-    for y in y_min..=y_max {
-        for x in x_min..=x_max {
-            let is_start_or_end = (x, y) == (0, 0) || vec2(x, y) == end;
+    // let shortest_path = path.into_iter().collect::<HashSet<_>>();
 
-            let is_wall = walls.contains(&vec2(x, y));
+    // let (x_min, x_max) = walls.iter().map(|&math::Vec2(x, _)| x).minmax().into_option().unwrap();
+    // let (y_min, y_max) = walls.iter().map(|&math::Vec2(_, y)| y).minmax().into_option().unwrap();
+    // let mut f = std::fs::File::create(&format!("{}_{}.ppm", end.0, end.1)).unwrap();
+    // use std::io::Write;
+    // writeln!(f, "P3").unwrap();
+    // writeln!(f, "# everybody codes!").unwrap();
+    // writeln!(f, "{} {}", x_max - x_min + 1, y_max - y_min + 1).unwrap();
+    // writeln!(f, "255").unwrap();
+    // for y in y_min..=y_max {
+    //     for x in x_min..=x_max {
+    //         let is_start_or_end = (x, y) == (0, 0) || vec2(x, y) == end;
+    //
+    //         let is_wall = walls.contains(&vec2(x, y));
+    //
+    //         let on_path = shortest_path.contains(&vec2(x, y));
+    //         let on_hug = cursor_visited.contains(&vec2(x, y));
+    //
+    //         const BLACK: (u8, u8, u8)       = (0x00, 0x00, 0x00);
+    //         const DARK_PURPLE: (u8, u8, u8) = (0x7E, 0x25, 0x53);
+    //         const DARK_GREEN: (u8, u8, u8)  = (0x00, 0x87, 0x51);
+    //         const LIGHT_GRAY: (u8, u8, u8)  = (0xC2, 0xC3, 0xC7);
+    //         const RED: (u8, u8, u8)         = (0xFF, 0x00, 0x4D);
+    //
+    //         let (r, g, b) = match (is_start_or_end, is_wall, on_path, on_hug) {
+    //             (true, ..) => RED,
+    //             (false, true, ..) => BLACK,
+    //             (false, false, true, true) => DARK_PURPLE,
+    //             (false, false, true, false) => DARK_GREEN,
+    //             (false, false, false, true) => RED,
+    //             (false, false, false, false) => LIGHT_GRAY,
+    //         };
+    //
+    //         write!(f, "{r} {g} {b} ").unwrap();
+    //     }
+    //     writeln!(f).unwrap();
+    // }
+}
 
-            let on_path = path.contains(&vec2(x, y));
-            let on_lh = cursor_visited.contains(&vec2(x, y));
+fn reduce_segments(walls: &HashSet<Vec2>, mut segments: Vec<Vec2>, end: Vec2) -> (Vec<Vec2>, HashSet<Vec2>) {
+    println!("{}: {segments:?}", segments.len());
+    'outer: loop {
+        let mut cursor = vec2(0, -1);
+        for (i, w) in segments.windows(3).enumerate() {
+            cursor += w[0];
 
-            const BLACK: (u8, u8, u8) = (0x00, 0x00, 0x00);
-            const DARK_PURPLE: (u8, u8, u8) = (0x7E, 0x25, 0x53);
-            const DARK_GREEN: (u8, u8, u8) = (0x00, 0x87, 0x51);
-            const LIGHT_GRAY: (u8, u8, u8) = (0xC2, 0xC3, 0xC7);
-            const RED: (u8, u8, u8) = (0xFF, 0x00, 0x4D);
+            // See if we can swap w[1] and w[2] -> if so, we can merge w[0] and w[2]
+            debug_assert!(w[0].same_dir(w[2]));
+            if apply(cursor, w[2]).all(|step| !walls.contains(&step))
+                && apply(cursor + w[2], w[1]).all(|step| !walls.contains(&step))
+            {
+                let to_merge = w[2];
+                segments[i] += to_merge;
+                segments.remove(i + 2);
 
-            let (r, g, b) = match (is_start_or_end, is_wall, on_path, on_lh) {
-                (true, ..) => RED,
-                (false, true, ..) => BLACK,
-                (false, false, true, true) => DARK_PURPLE,
-                (false, false, true, false) => DARK_GREEN,
-                (false, false, false, true) => RED,
-                (false, false, false, false) => LIGHT_GRAY,
-            };
+                // Since the segments are in order [Horizontal, Vertical, Horizontal, Vertical]
+                // (or w.l.o.g. the opposite), if we merged two of the same direction, we can merge
+                // the following two.
+                debug_assert!(segments[i+1].same_dir(segments[i+2]));
+                let to_merge = segments[i+2];
+                segments[i + 1] += to_merge;
+                segments.remove(i + 2);
 
-            write!(f, "{r} {g} {b} ").unwrap();
+                continue 'outer;
+            }
+
+            // See if we can shorten fst and snd and still not hit a wall
+            let &[mut fst, snd, mut trd] = w else { unreachable!() };
+            while fst.mag() > 1 && trd.mag() > 1 {
+                let fst_step = fst.normalized();
+                if apply(cursor - w[0], fst - fst_step).all(|step| !walls.contains(&step))
+                    && apply(cursor - w[0] + fst - fst_step, snd).all(|step| !walls.contains(&step))
+                    && apply(cursor - w[0] + fst - fst_step + snd, trd + fst_step).all(|step| !walls.contains(&step))
+                {
+                    fst -= fst_step;
+                    trd += fst_step;
+                } else {
+                    break;
+                }
+            }
+            debug_assert_eq!(cursor - w[0] + fst + snd + trd, cursor + w[1] + w[2]);
+
+            if fst != w[0] || trd != w[2] {
+                segments[i] = fst;
+                segments[i + 2] = trd;
+                continue 'outer;
+            }
         }
-        writeln!(f).unwrap();
+        break;
     }
+    println!("{}: {segments:?}", segments.len());
+
+    let mut cursor_visited = HashSet::default();
+    let mut cursor = vec2(0, -1);
+    for &dir in segments.iter() {
+        for p in apply(cursor, dir) {
+            debug_assert!( end == p || !walls.contains(&p), "ran into wall at {p:?} when applying {dir:?} from {cursor:?}" );
+            cursor_visited.insert(p);
+        }
+        cursor += dir;
+    }
+    println!("TOTAL REDUCED STEPS = {}", cursor_visited.len());
+    (segments, cursor_visited)
 }
 
 fn follow_wall(end: math::Vec2, walls: &HashSet<math::Vec2>) -> (HashSet<math::Vec2>, Vec<math::Vec2>) {
