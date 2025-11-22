@@ -44,6 +44,27 @@ impl Vec2 {
     pub(crate) fn dist(&self, other: &Self) -> u64 {
         self.0.abs_diff(other.0) + self.1.abs_diff(other.1)
     }
+
+    fn is_horizontal(&self) -> bool {
+        self.0 != 0 && self.1 == 0
+    }
+
+    fn is_vertical(&self) -> bool {
+        self.0 == 0 && self.1 != 0
+    }
+
+    pub(crate) fn same_dir(&self, other: Vec2) -> bool {
+        (self.is_horizontal() && other.is_horizontal()) || (self.is_vertical() && other.is_vertical())
+    }
+
+    pub(crate) fn opposite_dir(&self, other: Vec2) -> bool {
+        (self.is_horizontal() && other.is_horizontal() && self.0 == -other.0)
+            || (self.is_vertical() && other.is_vertical() && self.1 == -other.1)
+    }
+
+    pub(crate) fn mag(&self) -> i64 {
+        self.0.abs() + self.1.abs()
+    }
 }
 
 #[inline(always)]
