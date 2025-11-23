@@ -1,12 +1,10 @@
 #![allow(dead_code)]
 
 use std::mem::swap;
-
 use std::ops::AddAssign;
+use std::ops::{Add, Sub, Mul, SubAssign};
 
-use std::ops::Add;
-use std::ops::Sub;
-use std::ops::SubAssign;
+type Ratio = num_rational::Ratio<i64>;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct Vec2(pub(crate) i64, pub(crate) i64);
@@ -47,6 +45,14 @@ impl SubAssign for Vec2 {
     }
 }
 
+impl Mul<i64> for Vec2 {
+    type Output = Self;
+
+    fn mul(self, rhs: i64) -> Self::Output {
+        Self(self.0 * rhs, self.1 * rhs)
+    }
+}
+
 impl Vec2 {
     pub(crate) fn rotate_right(&mut self) {
         // (x + y * i) * i = -y + x * i
@@ -58,6 +64,13 @@ impl Vec2 {
         // (x + y * i) * (-i) = y - x * i
         self.0 = -self.0;
         swap(&mut self.0, &mut self.1);
+    }
+
+    #[must_use]
+    pub(crate) fn rotated_left(&self) -> Self {
+        let mut v = *self;
+        v.rotate_left();
+        v
     }
 
     pub(crate) fn dist(&self, other: &Self) -> u64 {
@@ -80,6 +93,7 @@ impl Vec2 {
         self.0.abs() + self.1.abs()
     }
 
+    #[must_use]
     pub(crate) fn normalized(&self) -> Self {
         let mag = self.mag();
         debug_assert!(mag != 0);
@@ -96,12 +110,119 @@ pub(crate) fn vec2(x: i64, y: i64) -> Vec2 {
     Vec2(x, y)
 }
 
+/// Line passing through two points, defined/used parametrically as the following locus of points:
+/// { start + t * (end - start) | 0 ≤ t ≤ 1 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct Segment {
+    pub(crate) start: Vec2,
+    pub(crate) end: Vec2,
+}
+
+#[inline(always)]
+pub(crate) fn segment(start: Vec2, end: Vec2) -> Segment {
+    let this = Segment { start, end };
+    if this.is_horizontal() {
+        // x = x0 + t(x1 - x0); y = y0
+    } else if this.is_vertical() {
+        // y = y0 + t(y1 - y0); x = x0
+    } else {
+        panic!("Only horizontal/vertical lines allowed");
+    }
+
+    this
+}
+
+impl std::fmt::Debug for Segment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}--{:?}", self.start, self.end)
+    }
+}
+
+
+impl Segment {
+    fn is_horizontal(&self) -> bool {
+        self.start.1 == self.end.1
+    }
+
+    fn is_vertical(&self) -> bool {
+        self.start.0 == self.end.0
+    }
+
+
+    pub(crate) fn contains(&self, point: Vec2) -> bool {
+        if self.is_horizontal() {
+            let y = self.start.1;
+            if point.1 != y {
+                return false;
+            }
+            let x0 = self.start.0.min(self.end.0);
+            let x1 = self.start.0.max(self.end.0);
+            point.0 >= x0 && point.0 <= x1
+        } else if self.is_vertical() {
+            let x = self.start.0;
+            if point.0 != x {
+                return false;
+            }
+            let y0 = self.start.1.min(self.end.1);
+            let y1 = self.start.1.max(self.end.1);
+            point.1 >= y0 && point.1 <= y1
+        } else {
+            false
+        }
+    }
+
+}
+
+impl IntoIterator for Segment {
+    type Item = Vec2;
+    type IntoIter = LineIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        LineIterator {
+            line: self,
+            current: self.start,
+            step: self
+                .end
+                .sub(self.start)
+                .normalized(),
+            done: false,
+        }
+    }
+}
+
+pub(crate) struct LineIterator {
+    line: Segment,
+    current: Vec2,
+    step: Vec2,
+    done: bool,
+}
+
+impl Iterator for LineIterator {
+    type Item = Vec2;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.done {
+            return None;
+        }
+
+        let result = self.current;
+
+        if result == self.line.end {
+            self.done = true;
+        } else {
+            self.current += self.step;
+        }
+
+        Some(result)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::Vec2;
+    use super::*;
 
     #[test]
-    fn test_rotate() {
+    fn test_rotate_frame() {
         let up = Vec2(0, -1);
         let right = Vec2(1, 0);
         let down = Vec2(0, 1);
