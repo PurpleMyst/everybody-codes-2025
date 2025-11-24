@@ -100,22 +100,21 @@ fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: Wal
             }
 
             // Check if we can shorten fst and trd by pushing some of fst into trd.
-            let &[mut fst, snd, mut trd] = w else { unreachable!() };
+            let &[fst, snd, trd] = w else { unreachable!() };
             if (trd + fst.normalized()).mag() < trd.mag() {
-                let n = (0..fst.mag().min(trd.mag()))
+                let max_n = fst.mag().min(trd.mag());
+
+                let n = (0..max_n)
                     .into_par_iter()
                     .find_first(|n| {
                         let fst_step = fst.normalized() * (n + 1);
                         !segment_delta(cursor - fst_step, snd).intersects_none(wall_lines)
                     })
                     .unwrap();
-                fst -= fst.normalized() * n;
-                trd += fst.normalized() * n;
-                debug_assert_eq!(cursor - w[0] + fst + snd + trd, cursor + w[1] + w[2]);
 
-                if fst != w[0] || trd != w[2] {
-                    steps[i] = fst;
-                    steps[i + 2] = trd;
+                if n != 0 {
+                    steps[i] -= fst.normalized() * n;
+                    steps[i + 2] += fst.normalized() * n;
                     continue 'outer;
                 }
             }
