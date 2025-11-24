@@ -68,45 +68,43 @@ pub fn solve_part2() -> impl Display {
     let mut round = 0;
     // First phase
 
-    for _ in 0..2 {
-        let len = ducks.len();
+    let len = ducks.len();
 
-        loop {
-            let mut moved = false;
+    loop {
+        let mut moved = false;
 
-            let mut i = 0;
-            'outer: while i < ducks.len() - 1 {
-                if ducks[i] <= ducks[i + 1] {
-                    i += 1;
-                    continue;
-                }
-
-                for j in i + 1..ducks.len() - 1 {
-                    if ducks[j] + 1 <= ducks[j + 1] {
-                        ducks[j] += 1;
-                        ducks[i] -= 1;
-                        moved = true;
-                        i = j + 1;
-                        continue 'outer;
-                    }
-                }
-
-                ducks[len - 1] += 1;
-                ducks[i] -= 1;
-                moved = true;
-                break;
+        let mut i = 0;
+        'outer: while i < ducks.len() - 1 {
+            if ducks[i] <= ducks[i + 1] {
+                i += 1;
+                continue;
             }
 
-            if !moved {
-                break;
+            for j in i + 1..ducks.len() - 1 {
+                if ducks[j] + 1 <= ducks[j + 1] {
+                    ducks[j] += 1;
+                    ducks[i] -= 1;
+                    moved = true;
+                    i = j + 1;
+                    continue 'outer;
+                }
             }
 
-            round += 1;
+            ducks[len - 1] += 1;
+            ducks[i] -= 1;
+            moved = true;
+            break;
         }
-        ducks.reverse();
+
+        if !moved {
+            break;
+        }
+
+        round += 1;
     }
 
-    round
+    let mean = ducks.iter().sum::<u64>() / ducks.len() as u64;
+    round + ducks.iter().map(|&duck| mean.saturating_sub(duck)).sum::<u64>()
 }
 
 #[inline]
