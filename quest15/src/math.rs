@@ -167,40 +167,8 @@ impl Segment {
             }
         } else if self.is_vertical() && other.is_horizontal() {
             other.intersection(self)
-        } else if self.is_horizontal() && other.is_horizontal() {
-            let y = self.start.1;
-            if y != other.start.1 {
-                return None;
-            }
-            let x0 = self.start.0.min(self.end.0);
-            let x1 = self.start.0.max(self.end.0);
-            let ox0 = other.start.0.min(other.end.0);
-            let ox1 = other.start.0.max(other.end.0);
-            let ix0 = x0.max(ox0);
-            let ix1 = x1.min(ox1);
-            if ix0 <= ix1 {
-                Some(Vec2(ix0, y)) // Return the start of the intersection segment
-            } else {
-                None
-            }
-        } else if self.is_vertical() && other.is_vertical() {
-            let x = self.start.0;
-            if x != other.start.0 {
-                return None;
-            }
-            let y0 = self.start.1.min(self.end.1);
-            let y1 = self.start.1.max(self.end.1);
-            let oy0 = other.start.1.min(other.end.1);
-            let oy1 = other.start.1.max(other.end.1);
-            let iy0 = y0.max(oy0);
-            let iy1 = y1.min(oy1);
-            if iy0 <= iy1 {
-                Some(Vec2(x, iy0)) // Return the start of the intersection segment
-            } else {
-                None
-            }
         } else {
-            unreachable!()
+            None
         }
     }
 
