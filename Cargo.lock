@@ -488,6 +488,9 @@ version = "0.1.0"
 [[package]]
 name = "quest15"
 version = "0.1.0"
+dependencies = [
+ "rayon",
+]
 
 [[package]]
 name = "quote"

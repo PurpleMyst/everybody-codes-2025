@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use rayon::prelude::*;
+
 mod math;
 use math::*;
 
@@ -43,30 +45,24 @@ fn do_solve(input: &'static str, hug_right: bool) -> i64 {
         wall_lines.push(segment(end, end + dir * n));
         end += dir * n;
     });
-    eprintln!("✅ WALL LINES = {wall_lines:?}");
-    eprintln!("✅ END POS = {end:?}");
 
     let wf_path = if hug_right {
         follow_right_wall(end, &wall_lines)
     } else {
         follow_left_wall(end, &wall_lines)
     };
-    println!("INITIAL WALL-FOLLOW STEPS = {}", wf_path.total());
 
     let wf_path = reduce_steps(&wall_lines, wf_path);
     debug_assert_eq!(wf_path.steps.iter().fold(wf_path.start, |acc, &v| acc + v), end);
-    println!("FINAL WALL-FOLLOW STEPS = {}", wf_path.total());
 
     wf_path.total()
 }
 
 fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: WallFollowPath) -> WallFollowPath {
-    println!("{}: {steps:?}", steps.len());
     'outer: loop {
         let mut cursor = start;
 
         if let Some(i) = steps.iter().position(|s| s.is_zero()) {
-            eprintln!("🧼 Removing zero step at index {i}");
             steps.remove(i);
             let to_merge = steps.remove(i);
             debug_assert!(steps[i - 1].same_dir(to_merge));
@@ -88,8 +84,6 @@ fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: Wal
                 && segment(cursor, cursor + w[2]).intersects_none(wall_lines)
                 && segment(cursor + w[2], cursor + w[2] + w[1]).intersects_none(wall_lines)
             {
-                eprintln!("🧲 Merging steps at index {i}: {w:?}");
-
                 let to_merge = w[2];
                 steps[i] += to_merge;
                 steps.remove(i + 2);
@@ -108,23 +102,21 @@ fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: Wal
             // Check if we can shorten fst and trd by pushing some of fst into trd.
             let &[mut fst, snd, mut trd] = w else { unreachable!() };
             if (trd + fst.normalized()).mag() < trd.mag() {
-                while fst.mag() > 1 && trd.mag() > 1 {
-                    let fst_step = fst.normalized();
-                    if segment_delta(cursor - w[0], fst - fst_step).intersects_none(wall_lines)
-                        && segment_delta(cursor - w[0] + fst - fst_step, snd).intersects_none(wall_lines)
-                        && segment_delta(cursor - w[0] + fst - fst_step + snd, trd + fst_step)
-                            .intersects_none(wall_lines)
-                    {
-                        fst -= fst_step;
-                        trd += fst_step;
-                    } else {
-                        break;
-                    }
-                }
+                let n = (0..fst.mag().min(trd.mag()))
+                    .into_par_iter()
+                    .find_first(|n| {
+                        let fst_step = fst.normalized() * (n + 1);
+                        !(segment_delta(cursor - w[0], fst - fst_step).intersects_none(wall_lines)
+                            && segment_delta(cursor - w[0] + fst - fst_step, snd).intersects_none(wall_lines)
+                            && segment_delta(cursor - w[0] + fst - fst_step + snd, trd + fst_step)
+                                .intersects_none(wall_lines))
+                    })
+                    .unwrap();
+                fst -= fst.normalized() * n;
+                trd += fst.normalized() * n;
                 debug_assert_eq!(cursor - w[0] + fst + snd + trd, cursor + w[1] + w[2]);
 
                 if fst != w[0] || trd != w[2] {
-                    eprintln!("✂️ Shortening steps at index {i}: {w:?} -> {fst:?}, {snd:?}, {trd:?}");
                     steps[i] = fst;
                     steps[i + 2] = trd;
                     continue 'outer;
@@ -133,7 +125,6 @@ fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: Wal
         }
         break;
     }
-    println!("{}: {steps:?}", steps.len());
 
     WallFollowPath { start, steps }
 }
@@ -182,14 +173,8 @@ fn follow_left_wall(end: Vec2, wall_lines: &[Segment]) -> WallFollowPath {
     let mut it = wall_lines.iter().peekable();
 
     'mainloop: while let Some(hugged_wall) = it.next() {
-        println!(
-            "@ {cursor:?} heading {heading:?}, looking for wall hug towards {:?}",
-            heading.rotated_left()
-        );
-
         let lefthand_dir = heading.rotated_left();
         let target = hugged_wall.end + heading - lefthand_dir;
-        println!("\t🎯 Found target {target:?}");
 
         let hit_candidate = target - heading;
         let actually_hit = it.peek().is_some_and(|next_wall| next_wall.contains(hit_candidate));
@@ -202,7 +187,6 @@ fn follow_left_wall(end: Vec2, wall_lines: &[Segment]) -> WallFollowPath {
                 .iter()
                 .any(|wall| wall.intersection(&segment(bee_start, end)).is_some_and(|p| p != end))
         {
-            eprintln!("\t🐝 Found bee line start at {bee_start:?}");
             steps.add_step(bee_start - cursor);
             steps.add_step(end - bee_start);
             break 'mainloop;
@@ -212,7 +196,6 @@ fn follow_left_wall(end: Vec2, wall_lines: &[Segment]) -> WallFollowPath {
                 .iter()
                 .any(|wall| wall.intersection(&segment(bee_start, end)).is_some_and(|p| p != end))
         {
-            eprintln!("\t🐝 Found bee line start at {bee_start:?}");
             steps.add_step(bee_start - cursor);
             steps.add_step(end - bee_start);
             break 'mainloop;
@@ -226,7 +209,6 @@ fn follow_left_wall(end: Vec2, wall_lines: &[Segment]) -> WallFollowPath {
             // ↓ this assumption should work only when hugging the left wall, it's probably the
             // opposite when hugging the right wall
             heading.rotate_right();
-            eprintln!("\t💥 Ran into wall at {hit_candidate:?}, new heading {heading:?}");
             continue 'mainloop;
         }
 
@@ -252,9 +234,7 @@ fn follow_right_wall(end: Vec2, wall_lines: &[Segment]) -> WallFollowPath {
 
     'mainloop: while let Some(hugged_wall) = it.next() {
         let righthand_dir = heading.rotated_right();
-        println!("@ {cursor:?} heading {heading:?}, looking for wall hug towards {righthand_dir:?}");
         let target = hugged_wall.end + heading - righthand_dir;
-        println!("\t🎯 Found target {target:?}");
 
         let hit_candidate = target - heading;
         let actually_hit = it.peek().is_some_and(|next_wall| next_wall.contains(hit_candidate));
@@ -267,7 +247,6 @@ fn follow_right_wall(end: Vec2, wall_lines: &[Segment]) -> WallFollowPath {
                 .iter()
                 .any(|wall| wall.intersection(&segment(bee_start, end)).is_some_and(|p| p != end))
         {
-            eprintln!("\t🐝 Found bee line start at {bee_start:?}");
             steps.add_step(bee_start - cursor);
             steps.add_step(end - bee_start);
             break 'mainloop;
@@ -277,7 +256,6 @@ fn follow_right_wall(end: Vec2, wall_lines: &[Segment]) -> WallFollowPath {
                 .iter()
                 .any(|wall| wall.intersection(&segment(bee_start, end)).is_some_and(|p| p != end))
         {
-            eprintln!("\t🐝 Found bee line start at {bee_start:?}");
             steps.add_step(bee_start - cursor);
             steps.add_step(end - bee_start);
             break 'mainloop;
@@ -289,7 +267,6 @@ fn follow_right_wall(end: Vec2, wall_lines: &[Segment]) -> WallFollowPath {
             steps.add_step((hit_candidate - heading) - cursor);
             cursor = hit_candidate - heading;
             heading.rotate_left();
-            eprintln!("\t💥 Ran into wall at {hit_candidate:?}, new heading {heading:?}");
             continue 'mainloop;
         }
 
