@@ -74,6 +74,8 @@ fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: Wal
 
         debug_assert_eq!(steps.windows(3).find(|w| !w[0].same_dir(w[2])), None);
 
+        let mut candidates = Vec::new();
+
         for (i, w) in steps.windows(3).enumerate() {
             cursor += w[0];
 
@@ -106,7 +108,7 @@ fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: Wal
             if (trd + fst.normalized()).mag() < trd.mag() {
                 let max_n = fst.mag().min(trd.mag());
 
-                let candidates = filter_segments_in_rect(wall_lines, cursor - fst, cursor + snd).collect::<Vec<_>>();
+                candidates.extend(filter_segments_in_rect(wall_lines, cursor - fst, cursor + snd));
                 let n = (0..max_n)
                     .into_par_iter()
                     .find_first(|n| {
@@ -114,6 +116,7 @@ fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: Wal
                         !segment_delta(cursor - fst_step, snd).intersects_none(candidates.iter().copied())
                     })
                     .expect("Should always find a value");
+                candidates.clear();
 
                 if n != 0 {
                     steps[i] -= fst.normalized() * n;
