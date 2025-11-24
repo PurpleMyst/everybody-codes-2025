@@ -106,10 +106,7 @@ fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: Wal
                     .into_par_iter()
                     .find_first(|n| {
                         let fst_step = fst.normalized() * (n + 1);
-                        !(segment_delta(cursor - w[0], fst - fst_step).intersects_none(wall_lines)
-                            && segment_delta(cursor - w[0] + fst - fst_step, snd).intersects_none(wall_lines)
-                            && segment_delta(cursor - w[0] + fst - fst_step + snd, trd + fst_step)
-                                .intersects_none(wall_lines))
+                        !segment_delta(cursor - fst_step, snd).intersects_none(wall_lines)
                     })
                     .unwrap();
                 fst -= fst.normalized() * n;
