@@ -60,6 +60,13 @@ impl Vec2 {
         swap(&mut self.0, &mut self.1);
     }
 
+    #[must_use]
+    pub(crate) fn rotated_right(&self) -> Vec2 {
+        let mut v = *self;
+        v.rotate_right();
+        v
+    }
+
     pub(crate) fn rotate_left(&mut self) {
         // (x + y * i) * (-i) = y - x * i
         self.0 = -self.0;
@@ -132,6 +139,11 @@ pub(crate) fn segment(start: Vec2, end: Vec2) -> Segment {
     this
 }
 
+#[inline(always)]
+pub(crate) fn segment_delta(start: Vec2, delta: Vec2) -> Segment {
+    segment(start, start + delta)
+}
+
 impl std::fmt::Debug for Segment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}--{:?}", self.start, self.end)
@@ -148,6 +160,65 @@ impl Segment {
         self.start.0 == self.end.0
     }
 
+    pub(crate) fn intersection(&self, other: &Segment) -> Option<Vec2> {
+        if self.is_horizontal() && other.is_vertical() {
+            let y = self.start.1;
+            let x = other.start.0;
+            let x0 = self.start.0.min(self.end.0);
+            let x1 = self.start.0.max(self.end.0);
+            let y0 = other.start.1.min(other.end.1);
+            let y1 = other.start.1.max(other.end.1);
+            if x >= x0 && x <= x1 && y >= y0 && y <= y1 {
+                Some(Vec2(x, y))
+            } else {
+                None
+            }
+        } else if self.is_vertical() && other.is_horizontal() {
+            other.intersection(self)
+        } else if self.is_horizontal() && other.is_horizontal() {
+            let y = self.start.1;
+            if y != other.start.1 {
+                return None;
+            }
+            let x0 = self.start.0.min(self.end.0);
+            let x1 = self.start.0.max(self.end.0);
+            let ox0 = other.start.0.min(other.end.0);
+            let ox1 = other.start.0.max(other.end.0);
+            let ix0 = x0.max(ox0);
+            let ix1 = x1.min(ox1);
+            if ix0 <= ix1 {
+                Some(Vec2(ix0, y)) // Return the start of the intersection segment
+            } else {
+                None
+            }
+        } else if self.is_vertical() && other.is_vertical() {
+            let x = self.start.0;
+            if x != other.start.0 {
+                return None;
+            }
+            let y0 = self.start.1.min(self.end.1);
+            let y1 = self.start.1.max(self.end.1);
+            let oy0 = other.start.1.min(other.end.1);
+            let oy1 = other.start.1.max(other.end.1);
+            let iy0 = y0.max(oy0);
+            let iy1 = y1.min(oy1);
+            if iy0 <= iy1 {
+                Some(Vec2(x, iy0)) // Return the start of the intersection segment
+            } else {
+                None
+            }
+        } else {
+            unreachable!()
+        }
+    }
+
+    pub(crate) fn intersects_any(&self, others: &[Segment]) -> bool {
+        others.iter().any(|other| self.intersection(other).is_some())
+    }
+
+    pub(crate) fn intersects_none(&self, others: &[Segment]) -> bool {
+        !self.intersects_any(others)
+    }
 
     pub(crate) fn contains(&self, point: Vec2) -> bool {
         if self.is_horizontal() {
@@ -171,13 +242,58 @@ impl Segment {
         }
     }
 
+    /// Returns the point on the segment with the given x-coordinate, if it exists.
+    pub(crate) fn point_with_x(&self, y: i64) -> Option<Vec2> {
+        if self.is_horizontal() {
+            let x0 = self.start.0.min(self.end.0);
+            let x1 = self.start.0.max(self.end.0);
+            if y >= x0 && y <= x1 {
+                Some(Vec2(y, self.start.1))
+            } else {
+                None
+            }
+        } else if self.is_vertical() {
+            if self.start.0 == y {
+                Some(self.start)
+            } else {
+                None
+            }
+        } else {
+            unreachable!()
+        }
+    }
+
+    /// Returns the point on the segment with the given y-coordinate, if it exists.
+    pub(crate) fn point_with_y(&self, y: i64) -> Option<Vec2> {
+        if self.is_horizontal() {
+            if self.start.1 == y {
+                Some(self.start)
+            } else {
+                None
+            }
+        } else if self.is_vertical() {
+            let y0 = self.start.1.min(self.end.1);
+            let y1 = self.start.1.max(self.end.1);
+            if y >= y0 && y <= y1 {
+                Some(Vec2(self.start.0, y))
+            } else {
+                None
+            }
+        } else {
+            unreachable!()
+        }
+    }
+
 }
 
 impl IntoIterator for Segment {
     type Item = Vec2;
     type IntoIter = LineIterator;
 
+    // #[track_caller]
     fn into_iter(self) -> Self::IntoIter {
+        // let loc = std::panic::Location::caller();
+        // eprintln!("[{}:{}:{}] ⚠️ THIS IS SLOW ⚠️ ", loc.file(), loc.line(), loc.column());
         LineIterator {
             line: self,
             current: self.start,

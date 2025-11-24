@@ -1,4 +1,4 @@
-*.txt
-*.png
-*.ppm
-*.xcf
+./*.txt
+./*.png
+./*.ppm
+./*.xcf
