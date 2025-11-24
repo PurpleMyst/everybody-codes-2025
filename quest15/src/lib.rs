@@ -65,8 +65,10 @@ fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: Wal
         if let Some(i) = steps.iter().position(|s| s.is_zero()) {
             steps.remove(i);
             let to_merge = steps.remove(i);
-            debug_assert!(steps[i - 1].same_dir(to_merge));
-            steps[i - 1] += to_merge;
+            if i != 0 {
+                debug_assert!(steps[i - 1].same_dir(to_merge));
+                steps[i - 1] += to_merge;
+            }
             continue 'outer;
         }
 
@@ -104,13 +106,14 @@ fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: Wal
             if (trd + fst.normalized()).mag() < trd.mag() {
                 let max_n = fst.mag().min(trd.mag());
 
+                let candidates = filter_segments_in_rect(wall_lines, cursor - fst, cursor + snd).collect::<Vec<_>>();
                 let n = (0..max_n)
                     .into_par_iter()
                     .find_first(|n| {
                         let fst_step = fst.normalized() * (n + 1);
-                        !segment_delta(cursor - fst_step, snd).intersects_none(wall_lines)
+                        !segment_delta(cursor - fst_step, snd).intersects_none(candidates.iter().copied())
                     })
-                    .unwrap();
+                    .expect("Should always find a value");
 
                 if n != 0 {
                     steps[i] -= fst.normalized() * n;

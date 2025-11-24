@@ -204,11 +204,39 @@ impl Segment {
         }
     }
 
-    pub(crate) fn intersects_any(&self, others: &[Segment]) -> bool {
-        others.iter().any(|other| self.intersection(other).is_some())
+    /// Checks if the segment intersects with or is contained by an axis-aligned rectangle.
+    /// The rectangle is defined by two corners (min and max).
+    #[rustfmt::skip]
+    pub(crate) fn intersects_rect(&self, r_p1: Vec2, r_p2: Vec2) -> bool {
+        // 1. Calculate the Segment's Bounding Box
+        let s_min_x = self.start.0.min(self.end.0);
+        let s_max_x = self.start.0.max(self.end.0);
+        let s_min_y = self.start.1.min(self.end.1);
+        let s_max_y = self.start.1.max(self.end.1);
+
+        // 2. Calculate the Rectangle's Bounding Box
+        // (We normalize the inputs to ensure min is actually min)
+        let r_min_x = r_p1.0.min(r_p2.0);
+        let r_max_x = r_p1.0.max(r_p2.0);
+        let r_min_y = r_p1.1.min(r_p2.1);
+        let r_max_y = r_p1.1.max(r_p2.1);
+
+        // 3. Separating Axis Theorem (Simplification for AABB)
+        // If the segment is completely to the left, right, above, or below the rect,
+        // they do not collide. Otherwise, they do.
+        let disjoint = s_max_x < r_min_x || // Segment is left of Rect
+                       s_min_x > r_max_x || // Segment is right of Rect
+                       s_max_y < r_min_y || // Segment is above Rect (assuming y-up) or below
+                       s_min_y > r_max_y; // Segment is below Rect or above
+
+        !disjoint
     }
 
-    pub(crate) fn intersects_none(&self, others: &[Segment]) -> bool {
+    pub(crate) fn intersects_any<'a>(&self, others: impl IntoIterator<Item = &'a Self>) -> bool {
+        others.into_iter().any(|other| self.intersection(other).is_some())
+    }
+
+    pub(crate) fn intersects_none<'a>(&self, others: impl IntoIterator<Item = &'a Self>) -> bool {
         !self.intersects_any(others)
     }
 
@@ -311,6 +339,15 @@ impl Iterator for LineIterator {
 
         Some(result)
     }
+}
+
+/// Filters a list of segments, returning only those colliding with the given rect.
+pub(crate) fn filter_segments_in_rect(
+    segments: &[Segment],
+    rect_min: Vec2,
+    rect_max: Vec2,
+) -> impl Iterator<Item = &'_ Segment> + '_ {
+    segments.iter().filter(move |s| s.intersects_rect(rect_min, rect_max))
 }
 
 #[cfg(test)]
