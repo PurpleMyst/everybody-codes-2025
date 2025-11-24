@@ -1,10 +1,7 @@
-#![allow(dead_code)]
-
-use std::mem::swap;
-use std::ops::AddAssign;
-use std::ops::{Add, Sub, Mul, SubAssign};
-
-type Ratio = num_rational::Ratio<i64>;
+use std::{
+    mem::swap,
+    ops::{Add, AddAssign, Mul, Sub, SubAssign},
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct Vec2(pub(crate) i64, pub(crate) i64);
@@ -80,10 +77,6 @@ impl Vec2 {
         v
     }
 
-    pub(crate) fn dist(&self, other: &Self) -> u64 {
-        self.0.abs_diff(other.0) + self.1.abs_diff(other.1)
-    }
-
     fn is_horizontal(&self) -> bool {
         self.0 != 0 && self.1 == 0
     }
@@ -149,7 +142,6 @@ impl std::fmt::Debug for Segment {
         write!(f, "{:?}--{:?}", self.start, self.end)
     }
 }
-
 
 impl Segment {
     fn is_horizontal(&self) -> bool {
@@ -253,11 +245,7 @@ impl Segment {
                 None
             }
         } else if self.is_vertical() {
-            if self.start.0 == y {
-                Some(self.start)
-            } else {
-                None
-            }
+            if self.start.0 == y { Some(self.start) } else { None }
         } else {
             unreachable!()
         }
@@ -266,11 +254,7 @@ impl Segment {
     /// Returns the point on the segment with the given y-coordinate, if it exists.
     pub(crate) fn point_with_y(&self, y: i64) -> Option<Vec2> {
         if self.is_horizontal() {
-            if self.start.1 == y {
-                Some(self.start)
-            } else {
-                None
-            }
+            if self.start.1 == y { Some(self.start) } else { None }
         } else if self.is_vertical() {
             let y0 = self.start.1.min(self.end.1);
             let y1 = self.start.1.max(self.end.1);
@@ -283,7 +267,6 @@ impl Segment {
             unreachable!()
         }
     }
-
 }
 
 impl IntoIterator for Segment {
@@ -297,10 +280,7 @@ impl IntoIterator for Segment {
         LineIterator {
             line: self,
             current: self.start,
-            step: self
-                .end
-                .sub(self.start)
-                .normalized(),
+            step: self.end.sub(self.start).normalized(),
             done: false,
         }
     }

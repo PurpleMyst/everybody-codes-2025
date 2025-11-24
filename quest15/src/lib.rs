@@ -1,26 +1,10 @@
-use std::{fmt::Display, fs::File, io::Write};
+use std::fmt::Display;
 
-use clap::Parser;
-use itertools::Itertools;
-use pathfinding::prelude::astar;
-use rustc_hash::FxHashSet as HashSet;
-
-#[derive(Debug, Parser)]
-#[command()]
-struct Args {
-    #[arg(short, long, help = "Draw the path and wall hug to a PPM file")]
-    draw: bool,
-
-    #[arg(short, long, help = "Reduce the wall-hugging path")]
-    reduce: bool,
-
-    #[arg(short = 'R', long, help = "Hug the right wall instead of the left")]
-    hug_right: bool,
-}
+mod math;
+use math::*;
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
-    color_eyre::install().unwrap();
     (solve_part1(), solve_part2(), solve_part3())
 }
 
@@ -41,9 +25,6 @@ pub fn solve_part3() -> impl Display {
     let input = include_str!("part3.txt");
     do_solve(input, true)
 }
-
-mod math;
-use math::*;
 
 fn do_solve(input: &'static str, hug_right: bool) -> i64 {
     let mut dir = vec2(0, -1);
@@ -72,83 +53,14 @@ fn do_solve(input: &'static str, hug_right: bool) -> i64 {
     };
     println!("INITIAL WALL-FOLLOW STEPS = {}", wf_path.total());
 
-    let wf_path =
-        reduce_steps(&wall_lines, wf_path);
+    let wf_path = reduce_steps(&wall_lines, wf_path);
     debug_assert_eq!(wf_path.steps.iter().fold(wf_path.start, |acc, &v| acc + v), end);
     println!("FINAL WALL-FOLLOW STEPS = {}", wf_path.total());
-
-    // let (path, len) = astar(
-    //     &vec2(0, 0),
-    //     |&Vec2(cx, cy)| {
-    //         [vec2(cx - 1, cy), vec2(cx + 1, cy), vec2(cx, cy - 1), vec2(cx, cy + 1)]
-    //             .into_iter()
-    //             .filter(|&n| end == n || !wall_cells.contains(&n))
-    //             .map(|n| (n, 1))
-    //     },
-    //     |&c| c.dist(&end),
-    //     |&p| p == end,
-    // )
-    // .unwrap();
-    // println!("TOTAL ASTAR STEPS = {len}");
-
-    // if args.draw {
-    //     draw(end, wall_cells, wf_path.visited(), path);
-    // }
 
     wf_path.total()
 }
 
-fn draw(end: Vec2, walls: HashSet<Vec2>, cursor_visited: HashSet<Vec2>, path: Vec<Vec2>) {
-    let shortest_path = path.into_iter().collect::<HashSet<_>>();
-    let (x_min, x_max) = walls.iter().map(|&Vec2(x, _)| x).minmax().into_option().unwrap();
-    let (y_min, y_max) = walls.iter().map(|&Vec2(_, y)| y).minmax().into_option().unwrap();
-    let mut f = File::create(&format!("{}_{}.ppm", end.0, end.1)).unwrap();
-
-    // enlarge for debug
-    let x_min = x_min - 4;
-    let x_max = x_max + 4;
-    let y_min = y_min - 4;
-    let y_max = y_max + 4;
-
-    writeln!(f, "P3").unwrap();
-    writeln!(f, "# everybody codes!").unwrap();
-    writeln!(f, "{} {}", x_max - x_min + 1, y_max - y_min + 1).unwrap();
-    writeln!(f, "255").unwrap();
-    for y in y_min..=y_max {
-        for x in x_min..=x_max {
-            let is_start_or_end = (x, y) == (0, 0) || vec2(x, y) == end;
-
-            let is_wall = walls.contains(&vec2(x, y));
-
-            let on_path = shortest_path.contains(&vec2(x, y));
-            let on_hug = cursor_visited.contains(&vec2(x, y));
-
-            const BLACK: (u8, u8, u8) = (0x00, 0x00, 0x00);
-            const DARK_PURPLE: (u8, u8, u8) = (0x7E, 0x25, 0x53);
-            const DARK_GREEN: (u8, u8, u8) = (0x00, 0x87, 0x51);
-            const LIGHT_GRAY: (u8, u8, u8) = (0xC2, 0xC3, 0xC7);
-            const RED: (u8, u8, u8) = (0xFF, 0x00, 0x4D);
-            const ORANGE: (u8, u8, u8) = (0xFF, 0x8C, 0x00);
-
-            let (r, g, b) = match (is_start_or_end, is_wall, on_path, on_hug) {
-                (true, ..) => ORANGE,
-                (false, true, ..) => BLACK,
-                (false, false, true, true) => DARK_PURPLE,
-                (false, false, true, false) => DARK_GREEN,
-                (false, false, false, true) => RED,
-                (false, false, false, false) => LIGHT_GRAY,
-            };
-
-            write!(f, "{r} {g} {b} ").unwrap();
-        }
-        writeln!(f).unwrap();
-    }
-}
-
-fn reduce_steps(
-    wall_lines: &[Segment],
-    WallFollowPath { start, mut steps }: WallFollowPath,
-) -> WallFollowPath {
+fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: WallFollowPath) -> WallFollowPath {
     println!("{}: {steps:?}", steps.len());
     'outer: loop {
         let mut cursor = start;
@@ -167,18 +79,16 @@ fn reduce_steps(
         for (i, w) in steps.windows(3).enumerate() {
             cursor += w[0];
 
-            // See if we can swap w[1] and w[2] -> if so, we can merge w[0] and w[2]
+            // Check if merging fst and trd is worthwile, and if so check if it is possible without
+            // banging into a wall.
             debug_assert!(w[0].same_dir(w[2]));
-            if segment(cursor, cursor + w[2])
-                .intersects_none(wall_lines)
-                && segment(cursor + w[2], cursor + w[2] + w[1])
-                    .intersects_none(wall_lines)
+            if ((w[0] + w[2]).mag() < w[0].mag() + w[2].mag()
+                || (i + 3 < steps.len()
+                    && (steps[i + 1] + steps[i + 3]).mag() < steps[i + 1].mag() + steps[i + 3].mag()))
+                && segment(cursor, cursor + w[2]).intersects_none(wall_lines)
+                && segment(cursor + w[2], cursor + w[2] + w[1]).intersects_none(wall_lines)
             {
                 eprintln!("🧲 Merging steps at index {i}: {w:?}");
-                if i == 11 {
-                    eprintln!("🤓 SPECIAL CASE at index {i}");
-                    eprintln!("{:?}", steps[i - 1..=i + 4].to_vec());
-                }
 
                 let to_merge = w[2];
                 steps[i] += to_merge;
@@ -195,30 +105,30 @@ fn reduce_steps(
                 continue 'outer;
             }
 
-            // See if we can shorten fst and snd and still not hit a wall
+            // Check if we can shorten fst and trd by pushing some of fst into trd.
             let &[mut fst, snd, mut trd] = w else { unreachable!() };
-            while fst.mag() > 1 && trd.mag() > 1 {
-                let fst_step = fst.normalized();
-                if segment_delta(cursor - w[0], fst - fst_step)
-                    .intersects_none(wall_lines)
-                    && segment_delta(cursor - w[0] + fst - fst_step, snd)
-                    .intersects_none(wall_lines)
-                    && segment_delta(cursor - w[0] + fst - fst_step + snd, trd + fst_step)
-                    .intersects_none(wall_lines)
-                {
-                    fst -= fst_step;
-                    trd += fst_step;
-                } else {
-                    break;
+            if (trd + fst.normalized()).mag() < trd.mag() {
+                while fst.mag() > 1 && trd.mag() > 1 {
+                    let fst_step = fst.normalized();
+                    if segment_delta(cursor - w[0], fst - fst_step).intersects_none(wall_lines)
+                        && segment_delta(cursor - w[0] + fst - fst_step, snd).intersects_none(wall_lines)
+                        && segment_delta(cursor - w[0] + fst - fst_step + snd, trd + fst_step)
+                            .intersects_none(wall_lines)
+                    {
+                        fst -= fst_step;
+                        trd += fst_step;
+                    } else {
+                        break;
+                    }
                 }
-            }
-            debug_assert_eq!(cursor - w[0] + fst + snd + trd, cursor + w[1] + w[2]);
+                debug_assert_eq!(cursor - w[0] + fst + snd + trd, cursor + w[1] + w[2]);
 
-            if fst != w[0] || trd != w[2] {
-                eprintln!("✂️ Shortening steps at index {i}: {w:?} -> {fst:?}, {snd:?}, {trd:?}");
-                steps[i] = fst;
-                steps[i + 2] = trd;
-                continue 'outer;
+                if fst != w[0] || trd != w[2] {
+                    eprintln!("✂️ Shortening steps at index {i}: {w:?} -> {fst:?}, {snd:?}, {trd:?}");
+                    steps[i] = fst;
+                    steps[i + 2] = trd;
+                    continue 'outer;
+                }
             }
         }
         break;
@@ -253,16 +163,6 @@ impl WallFollowPath {
         } else {
             self.steps.push(step);
         }
-    }
-
-    fn visited(&self) -> HashSet<Vec2> {
-        let mut visited = HashSet::default();
-        let mut cursor = self.start;
-        for &dir in self.steps.iter() {
-            visited.extend(segment_delta(cursor, dir));
-            cursor += dir;
-        }
-        visited
     }
 
     fn total(&self) -> i64 {
