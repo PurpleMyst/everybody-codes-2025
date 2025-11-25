@@ -19,6 +19,7 @@ quest12 = { version = "0.1.0", path = "../quest12" }
 quest13 = { version = "0.1.0", path = "../quest13" }
 quest14 = { version = "0.1.0", path = "../quest14" }
 quest15 = { version = "0.1.0", path = "../quest15" }
+quest16 = { version = "0.1.0", path = "../quest16" }
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
