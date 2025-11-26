@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::Display};
+use std::fmt::Display;
 
 use pathfinding::prelude::dijkstra;
 use rayon::prelude::*;
@@ -30,12 +30,20 @@ pub fn solve_part2() -> impl Display {
     let width = input.lines().next().unwrap().len();
     let map = grid::Grid::from_vec(input.lines().flat_map(|line| line.bytes()).collect(), width);
     let volcano_pos = map.indexed_iter().find(|&(_, &cell)| cell == b'@').unwrap().0;
-    let mut visited = HashSet::new();
+    let dist_map = grid::Grid::from_vec(
+        map.indexed_iter()
+            .map(|((y, x), _)| x.abs_diff(volcano_pos.0).pow(2) + y.abs_diff(volcano_pos.1).pow(2))
+            .collect::<Vec<usize>>(),
+        width,
+    );
 
     (1..=width / 2)
         .map(|radius| {
-            let destruction = within(&map, volcano_pos, radius)
-                .filter_map(|(x, y, v)| visited.insert((x, y)).then_some(v))
+            let destruction = dist_map
+                .indexed_iter()
+                .filter_map(|((x, y), &d)| {
+                    (d != 0 && d > (radius - 1).pow(2) && d <= radius.pow(2)).then(|| (map[(y, x)] - b'0') as u64)
+                })
                 .sum::<u64>();
             (destruction, destruction * radius as u64)
         })
@@ -44,44 +52,41 @@ pub fn solve_part2() -> impl Display {
         .1
 }
 
-fn within(
-    map: &grid::Grid<u8>,
-    volcano_pos: (usize, usize),
-    radius: usize,
-) -> impl Iterator<Item = (usize, usize, u64)> {
-    map.indexed_iter().filter_map(move |((y, x), &cell)| {
-        (cell.is_ascii_digit()
-            && x.abs_diff(volcano_pos.0).pow(2) + y.abs_diff(volcano_pos.1).pow(2) <= radius * radius)
-            .then_some((x, y, (cell - b'0') as u64))
-    })
-}
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 struct LoopState {
-    left: ((usize, usize), bool),
-    right: ((usize, usize), bool),
-    bottom: ((usize, usize), bool),
+    left: usize,
+    right: usize,
+    bottom: usize,
+    flags: u8,
 }
 
 impl LoopState {
-    fn new(left: (usize, usize), right: (usize, usize), bottom: (usize, usize)) -> Self {
+    fn new(left: usize, right: usize, bottom: usize) -> Self {
         Self {
-            left: (left, false),
-            right: (right, false),
-            bottom: (bottom, false),
+            left,
+            right,
+            bottom,
+            flags: 0,
         }
     }
 
     fn add(self, (x, y): (usize, usize)) -> Self {
         Self {
-            left: (self.left.0, self.left.1 || x <= self.left.0.0),
-            right: (self.right.0, self.right.1 || x >= self.right.0.0),
-            bottom: (self.bottom.0, self.bottom.1 || y >= self.bottom.0.1),
+            flags: if x <= self.left {
+                self.flags | 1
+            } else if x >= self.right {
+                self.flags | 2
+            } else if y >= self.bottom {
+                self.flags | 4
+            } else {
+                self.flags
+            },
+            ..self
         }
     }
 
     fn done(&self) -> bool {
-        self.left.1 && self.right.1 && self.bottom.1
+        self.flags.count_ones() == 3
     }
 }
 
@@ -95,34 +100,30 @@ pub fn solve_part3() -> impl Display {
     let start = map.indexed_iter().find(|&(_, &cell)| cell == b'S').unwrap().0;
     let start = (start.1, start.0);
 
+    let dist_map = grid::Grid::from_vec(
+        map.indexed_iter()
+            .map(|((y, x), _)| x.abs_diff(volcano_pos.0).pow(2) + y.abs_diff(volcano_pos.1).pow(2))
+            .collect::<Vec<usize>>(),
+        width,
+    );
+
     (1..width / 2)
         .into_par_iter()
         .find_map_first(|radius| {
-            let destroyed: HashSet<(usize, usize)> =
-                within(&map, volcano_pos, radius).map(|(x, y, _)| (x, y)).collect();
-            let destroyed = &destroyed;
             let map = &map;
+            let dist_map = &dist_map;
 
-            let next_ring = within(&map, volcano_pos, radius + 1)
-                .map(|(x, y, _)| (x, y))
-                .filter(|p| !destroyed.contains(&p))
-                .collect::<Vec<_>>();
-
-            let left = next_ring
-                .iter()
-                .copied()
-                .min_by_key(|&(x, y)| (x as isize - volcano_pos.0 as isize, y as isize - volcano_pos.1 as isize).0)
-                .unwrap();
-            let right = next_ring
-                .iter()
-                .copied()
-                .max_by_key(|&(x, y)| (x as isize - volcano_pos.0 as isize, y as isize - volcano_pos.1 as isize).0)
-                .unwrap();
-            let bottom = next_ring
-                .iter()
-                .copied()
-                .max_by_key(|&(x, y)| (x as isize - volcano_pos.0 as isize, y as isize - volcano_pos.1 as isize).1)
-                .unwrap();
+            let mut left = usize::MAX;
+            let mut right = usize::MIN;
+            let mut bottom = usize::MIN;
+            dist_map
+                .indexed_iter()
+                .filter_map(|((x, y), &d)| (d <= (radius + 1) * (radius + 1)).then_some((x, y)))
+                .for_each(|(x, y)| {
+                    left = left.min(x);
+                    right = right.max(x);
+                    bottom = bottom.max(y);
+                });
 
             let cost = dijkstra(
                 &(start.0, start.1, LoopState::new(left, right, bottom)),
@@ -134,7 +135,7 @@ pub fn solve_part3() -> impl Display {
                         (x, y.wrapping_add(1)),
                     ]
                     .into_iter()
-                    .filter(move |&(x, y)| !destroyed.contains(&(x, y)))
+                    .filter(move |&(x, y)| dist_map.get(y, x).is_some_and(|&d| d > radius.pow(2)))
                     .filter_map(move |(x, y)| {
                         Some(match map.get(y, x)? {
                             b @ b'0'..=b'9' => ((x, y, ls.add((x, y))), (b - b'0') as u64),
@@ -147,7 +148,7 @@ pub fn solve_part3() -> impl Display {
             )
             .map_or(u64::MAX, |(_, cost)| cost);
 
-            (cost < (30 * (radius + 1) as u64)).then_some(cost * radius as u64)
+            (cost < (30 * (radius + 1) as u64)).then_some(cost.wrapping_mul(radius as u64))
         })
         .unwrap()
 }
