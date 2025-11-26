@@ -74,8 +74,8 @@ where
 
     let to_index = |(x, y, flag): (usize, usize, bool)| -> usize { ((y * width) + x) * 2 + (flag as usize) };
 
-    let idx = to_index(start);
-    min_costs[idx] = 0;
+    let start_idx = to_index(start);
+    min_costs[start_idx] = 0;
     queue.push(start, 0);
 
     while !queue.is_empty() {
