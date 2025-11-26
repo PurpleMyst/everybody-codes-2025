@@ -1,6 +1,5 @@
 use std::fmt::Display;
 
-use pathfinding::prelude::dijkstra;
 use rayon::prelude::*;
 
 #[inline]
@@ -52,42 +51,58 @@ pub fn solve_part2() -> impl Display {
         .1
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-struct LoopState {
-    left: usize,
-    right: usize,
-    bottom: usize,
-    flags: u8,
-}
+pub fn dijkstra_bounded<FSuccessors, FSuccess, S>(
+    start: (usize, usize, bool),
+    bounds: (usize, usize),
+    max_cost: usize,
+    successors: FSuccessors,
+    success: FSuccess,
+) -> Option<usize>
+where
+    FSuccessors: Fn(&(usize, usize, bool)) -> S,
+    S: IntoIterator<Item = ((usize, usize, bool), usize)>,
+    FSuccess: Fn(&(usize, usize, bool)) -> bool,
+{
+    use ::bucket_queue::*;
 
-impl LoopState {
-    fn new(left: usize, right: usize, bottom: usize) -> Self {
-        Self {
-            left,
-            right,
-            bottom,
-            flags: 0,
+    let (width, height) = bounds;
+    let capacity = width * height * 2;
+
+    let mut min_costs = vec![usize::MAX; capacity];
+
+    let mut queue = BucketQueue::<Vec<(usize, usize, bool)>>::new();
+
+    let to_index = |(x, y, flag): (usize, usize, bool)| -> usize { ((y * width) + x) * 2 + (flag as usize) };
+
+    let idx = to_index(start);
+    min_costs[idx] = 0;
+    queue.push(start, 0);
+
+    while !queue.is_empty() {
+        let cost = queue.min_priority().unwrap();
+        let node = queue.pop_min().unwrap();
+
+        if success(&node) {
+            return Some(cost);
+        }
+
+        for (neighbor, move_cost) in successors(&node) {
+            let new_cost = cost + move_cost;
+
+            if new_cost > max_cost {
+                continue;
+            }
+
+            let neighbor_idx = to_index(neighbor);
+
+            if new_cost < min_costs[neighbor_idx] {
+                min_costs[neighbor_idx] = new_cost;
+                queue.push(neighbor, new_cost);
+            }
         }
     }
 
-    fn add(self, (x, y): (usize, usize)) -> Self {
-        Self {
-            flags: if x <= self.left {
-                self.flags | 1
-            } else if x >= self.right {
-                self.flags | 2
-            } else if y >= self.bottom {
-                self.flags | 4
-            } else {
-                self.flags
-            },
-            ..self
-        }
-    }
-
-    fn done(&self) -> bool {
-        self.flags.count_ones() == 3
-    }
+    None
 }
 
 #[inline]
@@ -125,9 +140,11 @@ pub fn solve_part3() -> impl Display {
                     bottom = bottom.max(y);
                 });
 
-            let cost = dijkstra(
-                &(start.0, start.1, LoopState::new(left, right, bottom)),
-                |&(x, y, ls)| {
+            let cost = dijkstra_bounded(
+                (start.0, start.1, false),
+                (map.cols(), map.rows()),
+                30 * (radius + 1),
+                |&(x, y, z)| {
                     [
                         (x.wrapping_sub(1), y),
                         (x.wrapping_add(1), y),
@@ -136,20 +153,26 @@ pub fn solve_part3() -> impl Display {
                     ]
                     .into_iter()
                     .filter(move |&(x, y)| dist_map.get(y, x).is_some_and(|&d| d > radius.pow(2)))
-                    .filter_map(move |(x, y)| {
-                        Some(match map.get(y, x)? {
-                            b @ b'0'..=b'9' => ((x, y, ls.add((x, y))), (b - b'0') as u64),
-                            b'S' => ((x, y, ls.add((x, y))), 0),
+                    .filter_map(move |(nx, ny)| {
+                        let nz = if x == volcano_pos.0 && y > volcano_pos.1 {
+                            nx > volcano_pos.0
+                        } else if nx == volcano_pos.0 && y > volcano_pos.1 {
+                            x < volcano_pos.0
+                        } else {
+                            z
+                        };
+
+                        Some(match map.get(ny, nx)? {
+                            b @ b'0'..=b'9' => ((nx, ny, nz), (b - b'0') as usize),
+                            b'S' => ((nx, ny, nz), 0),
                             _ => return None,
                         })
                     })
                 },
-                |&(x, y, ls)| (x, y) == start && ls.done(),
-            )
-            .map_or(u64::MAX, |(_, cost)| cost);
+                |&(x, y, z)| (x, y) == start && z,
+            )?;
 
-            (cost < (30 * (radius + 1) as u64)).then_some(cost.wrapping_mul(radius as u64))
+            Some(cost * radius)
         })
         .unwrap()
 }
-
