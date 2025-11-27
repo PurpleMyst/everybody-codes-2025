@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use atoi::{FromRadix10, FromRadix10Signed};
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct Plant {
     thickness: i64,
@@ -21,31 +23,15 @@ pub fn solve_part1() -> impl Display {
     let input = include_str!("part1.txt");
     let plants = parse(input);
 
-    let mut calculated = vec![None; plants.len()];
+    let mut calculated = vec![1; plants.len()];
     for (i, p) in plants.iter().enumerate() {
-        if p.branches.is_empty() {
-            calculated[i] = Some(1);
+        if !p.branches.is_empty() {
+            let brightness = p.branches.iter().fold(0, |acc, b| b.thickness * calculated[b.to] + acc);
+            calculated[i] = if brightness >= p.thickness { brightness } else { 0 };
         }
     }
-    'outer: while calculated.iter().any(Option::is_none) {
-        for (i, p) in plants.iter().enumerate() {
-            if calculated[i].is_some() {
-                continue;
-            }
 
-            if let Some(brightness) = p
-                .branches
-                .iter()
-                .try_fold(0, |acc, b| Some(b.thickness * calculated[b.to]? + acc))
-            {
-                calculated[i] = Some(if brightness < p.thickness { 0 } else { brightness });
-                continue 'outer;
-            }
-        }
-        unreachable!();
-    }
-
-    calculated.last().unwrap().unwrap()
+    *calculated.last().unwrap()
 }
 
 fn parse(input: &'static str) -> Vec<Plant> {
@@ -54,14 +40,14 @@ fn parse(input: &'static str) -> Vec<Plant> {
         .map(|plant_s| {
             let mut it = plant_s.lines().peekable();
             let thickness = it.next().unwrap().split(' ').last().unwrap();
-            let thickness = thickness[..thickness.len() - 1].parse().unwrap();
+            let thickness = i64::from_radix_10_signed(thickness.as_bytes()).0;
             let branches = if it.peek().unwrap().contains("free") {
                 vec![]
             } else {
                 it.map(|line| {
                     let mut it2 = line.split(' ');
-                    let to = it2.nth(4).unwrap().parse::<usize>().unwrap() - 1;
-                    let thickness = it2.last().unwrap().parse().unwrap();
+                    let to = usize::from_radix_10(it2.nth(4).unwrap().as_bytes()).0 - 1;
+                    let thickness = i64::from_radix_10_signed(it2.last().unwrap().as_bytes()).0;
                     Branch { to, thickness }
                 })
                 .collect()
@@ -100,17 +86,12 @@ fn eval(plants: &[Plant], case: &str) -> i64 {
 
     for ((i, p), k) in plants.iter().enumerate().zip(case.split(' ')) {
         debug_assert!(p.branches.is_empty());
-        calculated[i] = k.parse().unwrap();
+        calculated[i] = i64::from_radix_10_signed(k.as_bytes()).0;
     }
 
     for (i, p) in plants.iter().enumerate().skip((case.len() + 1) / 2) {
-        if let Some(brightness) = p
-            .branches
-            .iter()
-            .try_fold(0, |acc, b| Some(b.thickness * calculated[b.to] + acc))
-        {
-            calculated[i] = if brightness >= p.thickness { brightness } else { 0 };
-        }
+        let brightness = p.branches.iter().fold(0, |acc, b| b.thickness * calculated[b.to] + acc);
+        calculated[i] = if brightness >= p.thickness { brightness } else { 0 };
     }
 
     *calculated.last().unwrap()
@@ -121,15 +102,14 @@ fn eval_best(plants: &[Plant]) -> i64 {
     let mut calculated = vec![0; plants.len() - inputs];
 
     for (i, p) in plants.iter().skip(inputs).enumerate() {
-        if let Some(brightness) = p.branches.iter().try_fold(0, |acc, b| {
+        let brightness = p.branches.iter().fold(0, |acc, b| {
             if b.to < inputs {
-                Some(if b.thickness > 0 { b.thickness + acc } else { acc })
+                if b.thickness > 0 { b.thickness + acc } else { acc }
             } else {
-                Some(b.thickness * calculated[b.to - inputs] + acc)
+                b.thickness * calculated[b.to - inputs] + acc
             }
-        }) {
-            calculated[i] = if brightness >= p.thickness { brightness } else { 0 };
-        }
+        });
+        calculated[i] = if brightness >= p.thickness { brightness } else { 0 };
     }
     *calculated.last().unwrap()
 }
