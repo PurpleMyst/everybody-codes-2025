@@ -76,6 +76,7 @@ dependencies = [
  "quest15",
  "quest16",
  "quest17",
+ "quest18",
 ]
 
 [[package]]
@@ -518,6 +519,10 @@ dependencies = [
  "grid",
  "rayon",
 ]
+
+[[package]]
+name = "quest18"
+version = "0.1.0"
 
 [[package]]
 name = "quote"

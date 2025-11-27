@@ -1,0 +1,77 @@
+Plant 1 with thickness 1:
+- free branch with thickness 1
+
+Plant 2 with thickness 1:
+- free branch with thickness 1
+
+Plant 3 with thickness 1:
+- free branch with thickness 1
+
+Plant 4 with thickness 1:
+- free branch with thickness 1
+
+Plant 5 with thickness 1:
+- free branch with thickness 1
+
+Plant 6 with thickness 1:
+- free branch with thickness 1
+
+Plant 7 with thickness 1:
+- free branch with thickness 1
+
+Plant 8 with thickness 1:
+- free branch with thickness 1
+
+Plant 9 with thickness 1:
+- free branch with thickness 1
+
+Plant 10 with thickness 44:
+- branch to Plant 5 with thickness 32
+- branch to Plant 7 with thickness 26
+- branch to Plant 8 with thickness 17
+
+Plant 11 with thickness 47:
+- branch to Plant 7 with thickness 36
+- branch to Plant 6 with thickness 10
+
+Plant 12 with thickness 44:
+- branch to Plant 7 with thickness 13
+- branch to Plant 6 with thickness 13
+
+Plant 13 with thickness 27:
+- branch to Plant 7 with thickness 21
+- branch to Plant 6 with thickness 40
+- branch to Plant 1 with thickness 23
+- branch to Plant 3 with thickness 11
+- branch to Plant 5 with thickness 46
+- branch to Plant 9 with thickness 12
+
+Plant 14 with thickness 46:
+- branch to Plant 9 with thickness 48
+- branch to Plant 8 with thickness 44
+
+Plant 15 with thickness 89:
+- branch to Plant 14 with thickness 64
+- branch to Plant 13 with thickness 30
+- branch to Plant 10 with thickness 66
+
+Plant 16 with thickness 49:
+- branch to Plant 14 with thickness 13
+- branch to Plant 10 with thickness 38
+- branch to Plant 13 with thickness 71
+- branch to Plant 12 with thickness 45
+
+Plant 17 with thickness 46:
+- branch to Plant 14 with thickness 57
+- branch to Plant 13 with thickness 10
+
+Plant 18 with thickness 84:
+- branch to Plant 11 with thickness 16
+- branch to Plant 12 with thickness 15
+- branch to Plant 13 with thickness 17
+
+Plant 19 with thickness 1:
+- branch to Plant 15 with thickness 66
+- branch to Plant 16 with thickness 36
+- branch to Plant 17 with thickness 30
+- branch to Plant 18 with thickness 22
