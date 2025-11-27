@@ -1,6 +1,4 @@
 use std::fmt::Display;
-use std::fs::File;
-use std::io::Write;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct Plant {
@@ -80,9 +78,7 @@ pub fn solve_part2() -> impl Display {
     let (plant_desc, cases) = input.rsplit_once("\n\n").unwrap();
     let plants = parse(plant_desc);
 
-    cases.lines().map(|case| {
-        eval(&plants, case)
-    }).sum::<i64>()
+    cases.lines().map(|case| eval(&plants, case)).sum::<i64>()
 }
 
 pub fn solve_part3() -> impl Display {
@@ -90,93 +86,50 @@ pub fn solve_part3() -> impl Display {
     let (plant_desc, cases) = input.rsplit_once("\n\n").unwrap();
     let plants = parse(plant_desc);
 
-    let best = eval(&plants, "0 0 1 0 1 0 1 0 0 0 0 1 1 1 1 1 0 0 0 1 0 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 0 0 1 0 0 0 1 1 1 1 1 0 0");
+    let best = eval_best(&plants);
 
-    cases.lines().map(|case| {
-        eval(&plants, case)
-    })
-    .filter_map(|s| (s != 0).then_some(s.abs_diff(best)))
-    .sum::<u64>()
+    cases
+        .lines()
+        .map(|case| eval(&plants, case))
+        .filter_map(|s| (s != 0).then_some(s.abs_diff(best)))
+        .sum::<u64>()
 }
 
 fn eval(plants: &[Plant], case: &str) -> i64 {
-    let mut calculated = vec![None; plants.len()];
+    let mut calculated = vec![0; plants.len()];
+
     for ((i, p), k) in plants.iter().enumerate().zip(case.split(' ')) {
         debug_assert!(p.branches.is_empty());
-        calculated[i] = Some(k.parse().unwrap());
+        calculated[i] = k.parse().unwrap();
     }
-    'outer: while calculated.iter().any(Option::is_none) {
-        for (i, p) in plants.iter().enumerate() {
-            if calculated[i].is_some() {
-                continue;
-            }
 
-            if let Some(brightness) = p
-                .branches
-                .iter()
-                .try_fold(0, |acc, b| Some(b.thickness * calculated[b.to]? + acc))
-            {
-                calculated[i] = Some(if brightness >= p.thickness { brightness } else { 0 });
-                continue 'outer;
-            }
+    for (i, p) in plants.iter().enumerate().skip((case.len() + 1) / 2) {
+        if let Some(brightness) = p
+            .branches
+            .iter()
+            .try_fold(0, |acc, b| Some(b.thickness * calculated[b.to] + acc))
+        {
+            calculated[i] = if brightness >= p.thickness { brightness } else { 0 };
         }
-        unreachable!();
     }
-    calculated.last().unwrap().unwrap()
+
+    *calculated.last().unwrap()
 }
 
-#[inline]
-pub fn toposort() {
-    let input = include_str!("part3.txt");
-    let (plant_desc, _cases) = input.rsplit_once("\n\n").unwrap();
-    let plants = parse(plant_desc);
+fn eval_best(plants: &[Plant]) -> i64 {
+    let inputs = plants.iter().position(|p| !p.branches.is_empty()).unwrap();
+    let mut calculated = vec![0; plants.len() - inputs];
 
-    let mut calculated = vec![false; plants.len()];
-    for (i, p) in plants.iter().enumerate() {
-        if p.branches.is_empty() {
-            calculated[i] = true;
+    for (i, p) in plants.iter().skip(inputs).enumerate() {
+        if let Some(brightness) = p.branches.iter().try_fold(0, |acc, b| {
+            if b.to < inputs {
+                Some(if b.thickness > 0 { b.thickness + acc } else { acc })
+            } else {
+                Some(b.thickness * calculated[b.to - inputs] + acc)
+            }
+        }) {
+            calculated[i] = if brightness >= p.thickness { brightness } else { 0 };
         }
     }
-
-    let mut program = File::create("program.txt").unwrap();
-    'outer: while calculated.iter().any(|&done| !done) {
-        for (i, p) in plants.iter().enumerate() {
-            if calculated[i] {
-                continue;
-            }
-
-            if p
-                .branches
-                .iter()
-                .all(|b| calculated[b.to])
-            {
-                write!(program, "p[{}] = threshold({}, ", i + 1, p.thickness).unwrap();
-                for (i, branch) in p.branches.iter().enumerate() {
-                    if i != 0 {
-                        write!(program, " + ").unwrap();
-                    }
-                    write!(program, "({}) * p[{}]", branch.thickness, branch.to + 1).unwrap();
-                }
-
-                write!(program, ") # depends on [").unwrap();
-                let mut j = 0;
-                for branch in p.branches.iter() {
-                    if !plants[branch.to].branches.is_empty() {
-                        continue;
-                    }
-                    if j != 0 {
-                        write!(program, ", ").unwrap();
-                    }
-                    write!(program, "p[{}]", branch.to + 1).unwrap();
-                    j += 1;
-                }
-                writeln!(program, "] (len = {j})").unwrap();
-
-                calculated[i] = true;
-                continue 'outer;
-            }
-        }
-        unreachable!();
-    }
+    *calculated.last().unwrap()
 }
-
