@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use itertools::Itertools;
-use pathfinding::prelude::dijkstra;
+use pathfinding::prelude::astar;
 
 #[derive(Hash, Copy, Clone, PartialEq, Eq)]
 struct State {
@@ -63,7 +63,16 @@ fn do_solve(input: &'static str) -> usize {
         .map(|line| -> (usize, usize, usize) { line.split(',').map(|n| n.parse().unwrap()).collect_tuple().unwrap() })
         .collect::<Vec<_>>();
 
-    let (_path, cost) = dijkstra(&State { x: 0, y: 0 }, |s| s.advance(&walls), |s| s.done(&walls)).unwrap();
+    let target_x = walls.last().unwrap().0;
+    // let target_y = walls.iter().filter(|w| w.0 == target_x).map(|w| w.1).min().unwrap();
+
+    let (_path, cost) = astar(
+        &State { x: 0, y: 0 },
+        |s| s.advance(&walls),
+        |s| target_x - s.x,
+        |s| s.done(&walls),
+    )
+    .unwrap();
 
     cost
 }
@@ -79,4 +88,3 @@ pub fn solve_part3() -> impl Display {
     let input = include_str!("part3.txt");
     do_solve(input)
 }
-
