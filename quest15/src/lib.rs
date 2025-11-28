@@ -108,7 +108,11 @@ fn reduce_steps(wall_lines: &[Segment], WallFollowPath { start, mut steps }: Wal
             if (trd + fst.normalized()).mag() < trd.mag() {
                 let max_n = fst.mag().min(trd.mag());
 
-                candidates.extend(filter_segments_in_rect(wall_lines, cursor - fst.normalized() * max_n, cursor + snd));
+                candidates.extend(filter_segments_in_rect(
+                    wall_lines,
+                    cursor - fst.normalized() * max_n,
+                    cursor + snd,
+                ));
                 let n = (0..max_n)
                     .into_par_iter()
                     .find_first(|n| {

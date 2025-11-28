@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
-use itertools::Itertools;
 use atoi::FromRadix10;
+use itertools::Itertools;
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display, impl Display) {
@@ -15,9 +15,12 @@ pub fn solve_part1() -> impl Display {
 }
 
 fn do_solve(input: &'static str) -> usize {
-    let walls = input
-        .lines()
-        .map(|line| -> (usize, usize, usize) { line.split(',').map(|n| usize::from_radix_10(n.as_bytes()).0).collect_tuple().unwrap() });
+    let walls = input.lines().map(|line| -> (usize, usize, usize) {
+        line.split(',')
+            .map(|n| usize::from_radix_10(n.as_bytes()).0)
+            .collect_tuple()
+            .unwrap()
+    });
     let mut flaps = 0;
     let mut cur_x = 0;
     let mut cur_y = 0;
