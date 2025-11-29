@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::Display, iter::once};
+use std::fmt::Display;
 
 use grid::Grid;
 use pathfinding::prelude::bfs;
@@ -16,8 +16,26 @@ pub fn solve() -> (impl Display, impl Display, impl Display) {
 pub fn solve_part1() -> impl Display {
     let input = include_str!("part1.txt");
     let map = parse(input);
-    let adjacency = build_adjacency(&map);
-    adjacency.indexed_into_iter().map(|(_, vs)| vs.len()).sum::<usize>() / 2
+    let mut pairs = 0;
+    for ((y, x), &cell) in map.indexed_iter() {
+        if !matches!(cell, TRAMPOLINE | START | END) {
+            continue;
+        }
+
+        let adj_x = x - y;
+        let neighbors = [
+            Some((x.wrapping_sub(1), y)),
+            Some((x.wrapping_add(1), y)),
+            (y != 0 && adj_x % 2 == 0).then(|| (adj_x + 1 + (y - 1), y - 1)),
+            (y != map.rows() - 1 && adj_x % 2 != 0).then(|| (adj_x - 1 + (y + 1), y + 1)),
+        ];
+        for (nx, ny) in neighbors.into_iter().flatten() {
+            if matches!(map.get(ny, nx), Some(&TRAMPOLINE) | Some(&START) | Some(&END)) {
+                pairs += 1;
+            }
+        }
+    }
+    pairs / 2
 }
 
 #[inline]
@@ -43,8 +61,8 @@ fn parse(input: &'static str) -> Grid<u8> {
     map
 }
 
-fn build_adjacency(map: &Grid<u8>) -> Grid<HashSet<(usize, usize)>> {
-    let mut adjacency: Grid<HashSet<(usize, usize)>> = Grid::new(map.rows(), map.cols());
+fn build_adjacency(map: &Grid<u8>) -> Grid<Vec<(usize, usize)>> {
+    let mut adjacency: Grid<Vec<(usize, usize)>> = Grid::new(map.rows(), map.cols());
     for ((y, x), &cell) in map.indexed_iter() {
         if !matches!(cell, TRAMPOLINE | START | END) {
             continue;
@@ -59,15 +77,15 @@ fn build_adjacency(map: &Grid<u8>) -> Grid<HashSet<(usize, usize)>> {
         ];
         for (nx, ny) in neighbors.into_iter().flatten() {
             if matches!(map.get(ny, nx), Some(&TRAMPOLINE) | Some(&START) | Some(&END)) {
-                adjacency[(y, x)].insert((ny, nx));
+                adjacency[(y, x)].push((ny, nx));
             }
         }
     }
     adjacency
 }
 
-fn build_adjacency_3d(from_map: &Grid<u8>, to_map: &Grid<u8>) -> Grid<HashSet<(usize, usize)>> {
-    let mut adjacency: Grid<HashSet<(usize, usize)>> = Grid::new(from_map.rows(), from_map.cols());
+fn build_adjacency_3d(from_map: &Grid<u8>, to_map: &Grid<u8>) -> Grid<Vec<(usize, usize)>> {
+    let mut adjacency: Grid<Vec<(usize, usize)>> = Grid::new(from_map.rows(), from_map.cols());
     for ((y, x), &cell) in from_map.indexed_iter() {
         if !matches!(cell, TRAMPOLINE | START | END) {
             continue;
@@ -82,7 +100,7 @@ fn build_adjacency_3d(from_map: &Grid<u8>, to_map: &Grid<u8>) -> Grid<HashSet<(u
         ];
         for (nx, ny) in neighbors.into_iter().flatten() {
             if matches!(to_map.get(ny, nx), Some(&TRAMPOLINE) | Some(&START) | Some(&END)) {
-                adjacency[(y, x)].insert((ny, nx));
+                adjacency[(y, x)].push((ny, nx));
             }
         }
     }
@@ -132,27 +150,6 @@ pub fn solve_part3() -> impl Display {
     )
     .unwrap();
 
-    // for &(pz, py, px) in &path {
-    //     for y in 0..map.rows() {
-    //         for x in 0..map.cols() {
-    //             if (py, px) == (y, x) {
-    //                 print!("\x1b[32;7m");
-    //             }
-    //
-    //             let cell = match pz {
-    //                 0 => map[(y, x)],
-    //                 1 => map120[(y, x)],
-    //                 2 => map240[(y, x)],
-    //                 _ => unreachable!(),
-    //             };
-    //
-    //             print!("{}\x1b[0m", cell as char);
-    //         }
-    //         println!();
-    //     }
-    //     println!();
-    // }
-
     path.len() - 1
 }
 
@@ -174,4 +171,3 @@ fn rot120(map: &Grid<u8>) -> Grid<u8> {
     }
     new_map
 }
-
