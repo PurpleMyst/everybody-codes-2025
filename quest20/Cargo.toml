@@ -1,0 +1,8 @@
+[package]
+name = "quest20"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+grid = "1.0.0"
+pathfinding = "4.14.0"
